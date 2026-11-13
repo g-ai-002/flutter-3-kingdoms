@@ -69,6 +69,17 @@ class HelpPage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const _Section(
+            title: '外交纵横',
+            icon: Icons.send_outlined,
+            children: [
+              _Paragraph('在「势力」面板可遣使交涉，金钱无论成败都会消耗。'),
+              _Paragraph('停战：罢兵六月；联姻：结好两年。盟约期间双方不可互相进攻。'),
+              _Paragraph('劝降：仅余两城以内的弱小势力可被劝降，成功则城池、武将并入本方。'),
+              _Paragraph('使者由本方政治最高的武将担任，实力越强、政治越高，成算越大。'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const _Section(
             title: '攻城战',
             icon: Icons.gavel_rounded,
             children: [

@@ -101,5 +101,28 @@ void main() {
       expect(find.text('${def.ruler} · ${def.name}'), findsOneWidget);
     }
     expect(find.text('我方'), findsOneWidget);
+    expect(find.text('遣使'), findsWidgets);
+  });
+
+  testWidgets('遣使对话框列出停战、联姻与劝降', (tester) async {
+    tester.view.physicalSize = const Size(900, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = _newGame();
+    await tester.pumpWidget(
+      _host((context) => showFactionOverviewSheet(context, controller)),
+    );
+    await tester.tap(find.text('打开'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('遣使').first);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('停战 · '), findsOneWidget);
+    expect(find.textContaining('联姻 · '), findsOneWidget);
+    expect(find.textContaining('劝降 · '), findsOneWidget);
+    expect(find.textContaining('成算'), findsWidgets);
   });
 }
