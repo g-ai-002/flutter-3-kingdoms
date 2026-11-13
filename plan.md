@@ -40,13 +40,13 @@
 - 0.2.1 重构 0.2.0 的增量代码：事件模块、名册查询、面板骨架与页面构件各自独立。✅
 - 0.2.2 性能与流畅度优化：地图分层缓存、视觉签名、选中层缓存与脉冲停帧、启动并行初始化。✅
 - 0.3.0 新增外交与同盟：停战、联姻、劝降弱小势力，盟约约束玩家与 AI。✅
-- 0.3.1 重构 0.3.0 的增量代码：势力统计、外交成算、战斗快照与面板骨架各归一处。🚧
+- 0.3.1 重构 0.3.0 的增量代码：势力统计、外交成算、战斗快照与面板骨架各归一处。✅
 
 ## 版本历史
 
 ### v0.3.1 (PATCH) — 2026-11-14
 
-- **状态**: 开发完成，等待 CI 构建与发布 🚧
+- **状态**: Android / Web 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.3.1)）；Windows 产物待 `windows-flutter` runner 恢复后补发 ⚠️
 - **目标**: 重构 0.3.0 的增量代码，收敛势力统计、外交成算与战斗快照的重复实现，玩法与数值保持不变。
 - **任务**:
   - [x] 势力版图统计下沉 `GameState.tallyOf`：城池数与兵力一次遍历，`cityCount` / `troopsOf` 共用同一口径
@@ -59,8 +59,9 @@
   - [x] 移除仅测试使用的 `goldIncomeOf` / `foodIncomeOf` 包装，改由 `economyOf` 直接取用
   - [x] 新增版图统计、存亡同步、批量成算与战斗快照 4 项测试，91 项测试通过
   - [x] `flutter analyze` 无问题；lib 代码 9920 行，低于 10000 行上限
-  - [ ] 构建流水线：等待 Gitea Actions / GitHub Actions 运行结果
-  - [ ] Release：待三端产物上传后补充下载信息
+  - [x] 构建流水线：Dart 测试、Android 与 Web 任务通过，Web 站点已发布到 `tea-pages/v0.3.1`
+  - [x] Release：Android APK 与 Web 产物已上传；Windows 任务因 runner 离线排队，工作流按既有做法取消
+  - [ ] Windows 产物：`windows-flutter` runner 恢复后构建 Windows ZIP 并上传到 v0.3.1 Release
 
 ### v0.3.0 (MINOR) — 2026-11-14
 
