@@ -58,7 +58,7 @@
   - [x] `flutter analyze` 无问题；lib 代码 9939 行，低于 10000 行上限
   - [x] 构建流水线：Dart 测试、Android 与 Web 任务通过，Web 站点已发布到 `tea-pages/v0.2.2`
   - [x] Release：Android APK 与 Web 产物已上传；`windows-flutter` runner 离线导致 release 任务等待，已按既有做法手动补发
-  - [ ] Windows 产物：`windows-flutter` runner 恢复后手动运行 `build` 工作流选定 `v0.2.2` 补发
+  - [ ] Windows 产物：`windows-flutter` runner 恢复后构建 Windows ZIP，并手动上传到 v0.2.2 Release
 
 ### v0.2.1 (PATCH) — 2026-11-14
 
