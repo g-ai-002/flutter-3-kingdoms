@@ -37,8 +37,26 @@
 - 0.1.1 重构 0.1.0 的增量代码：收敛回合结算、城池指令与界面卡片的重复实现。✅
 - 0.1.2 性能与流畅度优化：地图静态图层缓存、HUD 局部重建、音频后台合成与启动错峰、前后台停帧。✅
 - 0.2.0 新增存档与读档、武将技能与兵种相克，补齐长篇对局的连续性。✅
+- 0.2.1 重构 0.2.0 的增量代码：事件模块、名册查询、面板骨架与页面构件各自独立。✅
 
 ## 版本历史
+
+### v0.2.1 (PATCH) — 2026-11-14
+
+- **状态**: Android / Web 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.2.1)）；Windows 产物待 `windows-flutter` runner 恢复后补发 ⚠️
+- **目标**: 重构 0.2.0 的增量代码，收敛重复布局与查询逻辑，玩法与数值保持不变。
+- **任务**:
+  - [x] 月度随机事件从控制器抽为 `MonthEvents`，七种事件可独立结算与测试
+  - [x] 城池名册查询（在城武将、在野武将、太守、守将与出征主将）下沉到 `GameState`
+  - [x] 面板骨架统一：`SheetFrame` / `SheetHeader` / `SheetLabel` / `EmptyHint`，五处面板共用
+  - [x] 首页与战斗页拆出 `home_widgets` / `battle_widgets`，页面只保留状态与编排
+  - [x] 兵数简写统一为 `formatTroopsCompact`，地图徽记与界面共用一套口径
+  - [x] 清理未使用的控制器方法、格式化函数与常量
+  - [x] 新增事件、名册、面板骨架、战斗构件与代码行数守护测试，78 项测试通过
+  - [x] `flutter analyze` 无问题；lib 代码 9800 行，低于 10000 行上限
+  - [x] 构建流水线：Dart 测试、Android 与 Web 任务通过，Web 站点已发布到 `tea-pages/v0.2.1`
+  - [x] Release：Android APK 与 Web 产物已上传，Windows 任务因 runner 离线排队未启动
+  - [ ] Windows 产物：`windows-flutter` runner 恢复后手动运行 `build` 工作流选定 `v0.2.1` 补发
 
 ### v0.2.0 (MINOR) — 2026-11-14
 
