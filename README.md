@@ -33,7 +33,7 @@ v0.1.2（性能优化）：[Gitea Release](http://192.168.31.120:3020/GTech/flut
 | Windows (x64, Win10+) | 待补发：构建时 Gitea `windows-flutter` runner 离线，流水线配置已就绪 |
 | Web | `flutter-3-kingdoms-0.1.2-web.zip`（解压后起静态服务器） |
 
-在线试玩：[v0.1.2](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/src/branch/tea-pages/v0.1.2/) · [debug 预览](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/src/branch/tea-pages/debug/)
+在线试玩：下载 Release 中的 Web 产物解压后起静态服务器；站点同时推送到 `tea-pages` 分支的 `v0.1.2/` 目录，可由静态托管服务直接发布。
 
 上一版本 v0.1.1：[Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.1.1)
 
