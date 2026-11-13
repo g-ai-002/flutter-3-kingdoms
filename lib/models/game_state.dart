@@ -40,6 +40,9 @@ class GameState {
   final Difficulty difficulty;
   final List<Chronicle> chronicle;
 
+  /// 两家盟约剩余月数，键为按字典序拼接的势力对。
+  final Map<String, int> pacts = <String, int>{};
+
   bool finished;
   GameOutcome? outcome;
 
@@ -134,6 +137,39 @@ class GameState {
   /// 某势力是否仍据有城池。
   bool hasCities(String factionId) =>
       cities.values.any((city) => city.owner == factionId);
+
+  String _pactKey(String a, String b) =>
+      a.compareTo(b) <= 0 ? '$a|$b' : '$b|$a';
+
+  /// 两家盟约的剩余月数，无盟约为 0。
+  int pactMonths(String a, String b) => pacts[_pactKey(a, b)] ?? 0;
+
+  bool hasPact(String a, String b) => pactMonths(a, b) > 0;
+
+  void makePact(String a, String b, int months) {
+    if (a == b || months <= 0) return;
+    pacts[_pactKey(a, b)] = months;
+  }
+
+  /// 每月推进盟约，到期自动解除。
+  void tickPacts() {
+    final expired = <String>[];
+    for (final entry in pacts.entries) {
+      final left = entry.value - 1;
+      if (left <= 0) {
+        expired.add(entry.key);
+      } else {
+        pacts[entry.key] = left;
+      }
+    }
+    for (final key in expired) {
+      pacts.remove(key);
+    }
+  }
+
+  void clearPactsWith(String factionId) {
+    pacts.removeWhere((key, _) => key.split('|').contains(factionId));
+  }
 
   void addChronicle(String text, ChronicleKind kind, {String? factionId}) {
     chronicle.add(

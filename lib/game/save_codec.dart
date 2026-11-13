@@ -76,6 +76,7 @@ class SaveCodec {
         for (final general in state.generals.values)
           general.id: [general.factionId, general.cityId, general.loyalty],
       },
+      'pacts': state.pacts,
       'chronicle': [
         for (final entry in keep)
           [
@@ -168,6 +169,14 @@ class SaveCodec {
       general.cityId = row[1] as String;
       general.loyalty = (row[2] as num).toInt();
     }
+
+    final pacts = raw['pacts'] as Map<String, dynamic>? ?? const {};
+    state.pacts
+      ..clear()
+      ..addAll({
+        for (final entry in pacts.entries)
+          entry.key: (entry.value as num).toInt(),
+      });
 
     for (final value in (raw['chronicle'] as List? ?? const [])) {
       final row = value as List;

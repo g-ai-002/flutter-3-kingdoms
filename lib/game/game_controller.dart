@@ -6,11 +6,13 @@ import '../models/battle.dart';
 import '../models/chronicle.dart';
 import '../models/city.dart';
 import '../models/difficulty.dart';
+import '../models/diplomacy.dart';
 import '../models/faction.dart';
 import '../models/game_state.dart';
 import '../models/general.dart';
 import 'battle_preview.dart';
 import 'data/scenario.dart';
+import 'diplomacy.dart';
 import 'engine/battle_engine.dart';
 import 'events/month_events.dart';
 import 'order_result.dart';
@@ -122,6 +124,18 @@ class GameController extends ChangeNotifier {
     _notifyChanged();
   }
 
+  /// 遣使交涉：金钱无论成败都会消耗，成败由使者与双方实力决定。
+  OrderResult attemptDiplomacy(String targetId, DiplomaticMove move) {
+    if (finished) {
+      return const OrderResult(success: false, message: '战局已定');
+    }
+    final goldBefore = state.player.gold;
+    final result = DiplomacyService.attempt(state, targetId, move, _random);
+    if (result.success) _checkVictory();
+    if (result.success || state.player.gold != goldBefore) _notifyChanged();
+    return result;
+  }
+
   /// 玩家发起攻城战：校验相邻关系与兵力后先扣兵，再交给战斗页。
   ({BattleSetup? setup, String? error}) prepareBattle({
     required City source,
@@ -138,6 +152,9 @@ class GameController extends ChangeNotifier {
     }
     if (target.owner == source.owner) {
       return (setup: null, error: '不可进攻本方城池');
+    }
+    if (state.hasPact(source.owner, target.owner)) {
+      return (setup: null, error: '两家已有盟约，背盟兴兵有失道义');
     }
     if (source.acted) {
       return (setup: null, error: '本月此城已下过指令');
@@ -452,6 +469,7 @@ class GameController extends ChangeNotifier {
       for (final city in state.citiesOf(factionId)) {
         if (city.troops < 1800 || city.acted) continue;
         for (final target in state.enemyNeighbors(city)) {
+          if (state.hasPact(factionId, target.owner)) continue;
           final ratio = city.troops / max(600, target.power);
           if (ratio < difficulty.aiAggression) continue;
           final score =
@@ -537,6 +555,7 @@ class GameController extends ChangeNotifier {
       state.month = 1;
       state.year++;
     }
+    state.tickPacts();
     for (final city in state.cities.values) {
       city.acted = false;
     }
