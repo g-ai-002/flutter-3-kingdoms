@@ -249,3 +249,119 @@ class TitleOrnament extends StatelessWidget {
     );
   }
 }
+
+/// 面板标题行：主标题、可选副标题与右侧附属信息。
+class SheetHeader extends StatelessWidget {
+  const SheetHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+  });
+
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text(title, style: theme.textTheme.titleSmall)),
+            ?trailing,
+          ],
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            subtitle!,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// 底部面板骨架：安全区、统一内边距与标题，内容可选滚动。
+class SheetFrame extends StatelessWidget {
+  const SheetFrame({
+    super.key,
+    required this.title,
+    required this.child,
+    this.subtitle,
+    this.trailing,
+    this.scrollable = false,
+    this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 12),
+  });
+
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  final Widget child;
+  final bool scrollable;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final body = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SheetHeader(title: title, subtitle: subtitle, trailing: trailing),
+        child,
+      ],
+    );
+    return SafeArea(
+      child: Padding(
+        padding: padding,
+        child: scrollable ? SingleChildScrollView(child: body) : body,
+      ),
+    );
+  }
+}
+
+/// 面板内的分区小标题。
+class SheetLabel extends StatelessWidget {
+  const SheetLabel(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      text,
+      style: theme.textTheme.labelSmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
+/// 面板内的空状态提示。
+class EmptyHint extends StatelessWidget {
+  const EmptyHint(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      text,
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+}
+

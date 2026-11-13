@@ -104,190 +104,161 @@ class _CampaignSheetState extends State<_CampaignSheet> {
       BattleOdds.even => const Color(0xFF8A6A32),
       BattleOdds.unfavorable => appRed,
     };
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: MediaQuery.viewInsetsOf(context).bottom + 12,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    return SheetFrame(
+      title: '${source.name} · 出征',
+      trailing: InfoChip(
+        text: '可出 ${source.troops - 200} 兵',
+        dense: true,
+        color: colors.primary,
+      ),
+      scrollable: true,
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        bottom: MediaQuery.viewInsetsOf(context).bottom + 12,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 10),
+          const SheetLabel('择一敌城'),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Row(
-                children: [
-                  Text('${source.name} · 出征', style: theme.textTheme.titleSmall),
-                  const Spacer(),
-                  InfoChip(
-                    text: '可出 ${source.troops - 200} 兵',
-                    dense: true,
-                    color: colors.primary,
+              for (final target in _targets)
+                ChoiceChip(
+                  label: Text(
+                    '${target.name}（${FactionDefs.nameOf(target.owner)}）',
                   ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              const _SectionLabel('择一敌城'),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final target in _targets)
-                    ChoiceChip(
-                      label: Text(
-                        '${target.name}（${FactionDefs.nameOf(target.owner)}）',
-                      ),
-                      selected: target.id == _target.id,
-                      onSelected: (_) => setState(() => _target = target),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(11),
-                decoration: BoxDecoration(
-                  color: colors.surfaceContainerHighest.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.outline),
+                  selected: target.id == _target.id,
+                  onSelected: (_) => setState(() => _target = target),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colors.outline),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        FactionSeal(factionId: _target.owner, size: 26),
-                        const SizedBox(width: 7),
-                        Text(
-                          _target.name,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _target.terrain.label,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        InfoChip(
-                          text: _target.troopType.label,
-                          dense: true,
-                          color: appRed,
-                        ),
-                        const Spacer(),
-                        InfoChip(
-                          text: preview.odds.label,
-                          color: oddsColor,
-                          dense: true,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
+                    FactionSeal(factionId: _target.owner, size: 26),
+                    const SizedBox(width: 7),
                     Text(
-                      '守军 ${_target.troops} · 城防 ${_target.defense} · '
-                      '训练 ${_target.training} · '
-                      '守将 ${defender?.name ?? '无名守将'}',
+                      _target.name,
+                      style: theme.textTheme.titleSmall?.copyWith(fontSize: 13),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _target.terrain.label,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colors.onSurfaceVariant,
-                        height: 1.5,
                       ),
                     ),
-                    Text(
-                      '${source.troopType.label} 对 ${_target.troopType.label} · '
-                      '${_counterHint(source, _target)}',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                        height: 1.5,
-                      ),
+                    const SizedBox(width: 5),
+                    InfoChip(
+                      text: _target.troopType.label,
+                      dense: true,
+                      color: appRed,
+                    ),
+                    const Spacer(),
+                    InfoChip(
+                      text: preview.odds.label,
+                      color: oddsColor,
+                      dense: true,
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 12),
-              const _SectionLabel('择一主将'),
-              const SizedBox(height: 6),
-              if (_generals.isEmpty)
+                const SizedBox(height: 6),
                 Text(
-                  '城中无将，只能由偏将带队（战力较低）',
+                  '守军 ${_target.troops} · 城防 ${_target.defense} · '
+                  '训练 ${_target.training} · '
+                  '守将 ${defender?.name ?? '无名守将'}',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.error,
+                    color: colors.onSurfaceVariant,
+                    height: 1.5,
                   ),
-                )
-              else
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final general in _generals)
-                      ChoiceChip(
-                        label: Text(
-                          '${general.name} 武${general.wu} 统${general.lead}',
-                        ),
-                        selected: general.id == _general?.id,
-                        onSelected: (_) => setState(() => _general = general),
-                      ),
-                  ],
                 ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Text(
-                    '出兵 ${_troops.round()}',
-                    style: theme.textTheme.titleSmall?.copyWith(fontSize: 13),
+                Text(
+                  '${source.troopType.label} 对 ${_target.troopType.label} · '
+                  '${_counterHint(source, _target)}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                    height: 1.5,
                   ),
-                  const Spacer(),
-                  Text(
-                    '留 ${source.troops - _troops.round()} 守城',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          const SheetLabel('择一主将'),
+          const SizedBox(height: 6),
+          if (_generals.isEmpty)
+            Text(
+              '城中无将，只能由偏将带队（战力较低）',
+              style: theme.textTheme.labelSmall?.copyWith(color: colors.error),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final general in _generals)
+                  ChoiceChip(
+                    label: Text(
+                      '${general.name} 武${general.wu} 统${general.lead}',
                     ),
+                    selected: general.id == _general?.id,
+                    onSelected: (_) => setState(() => _general = general),
                   ),
-                ],
+              ],
+            ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                '出兵 ${_troops.round()}',
+                style: theme.textTheme.titleSmall?.copyWith(fontSize: 13),
               ),
-              Slider(
-                value: _troops,
-                min: 500,
-                max: _maxTroops,
-                divisions: ((_maxTroops - 500) / 100).ceil().clamp(1, 200).toInt(),
-                label: '${_troops.round()}',
-                onChanged: (value) => setState(() => _troops = value),
-              ),
-              const SizedBox(height: 4),
-              FilledButton.icon(
-                onPressed: () => Navigator.of(context).pop(
-                  CampaignRequest(
-                    target: _target,
-                    general: _general,
-                    troops: _troops.round(),
-                  ),
+              const Spacer(),
+              Text(
+                '留 ${source.troops - _troops.round()} 守城',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
                 ),
-                icon: const Icon(Icons.gavel_rounded, size: 18),
-                label: Text('兵发 ${_target.name}'),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      text,
-      style: theme.textTheme.labelSmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
+          Slider(
+            value: _troops,
+            min: 500,
+            max: _maxTroops,
+            divisions: ((_maxTroops - 500) / 100).ceil().clamp(1, 200).toInt(),
+            label: '${_troops.round()}',
+            onChanged: (value) => setState(() => _troops = value),
+          ),
+          const SizedBox(height: 4),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(
+              CampaignRequest(
+                target: _target,
+                general: _general,
+                troops: _troops.round(),
+              ),
+            ),
+            icon: const Icon(Icons.gavel_rounded, size: 18),
+            label: Text('兵发 ${_target.name}'),
+          ),
+        ],
       ),
     );
   }

@@ -22,88 +22,67 @@ Future<void> showAppointmentSheet(
         final colors = theme.colorScheme;
         final residents = controller.game.residentsOf(city);
         final free = controller.game.freeGeneralsIn(city);
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Text('${city.name} · 人事', style: theme.textTheme.titleSmall),
-                      const Spacer(),
-                      Text(
-                        '金 ${controller.game.player.gold}',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    '任命太守 · 太守的政治与统率影响内政与守城',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  if (residents.isEmpty)
-                    const _EmptyHint('城中暂无武将')
-                  else
-                    for (final general in residents)
-                      _GeneralTile(
-                        general: general,
-                        leading: FactionSeal(
-                          factionId: city.owner,
-                          size: 30,
-                        ),
-                        trailing: city.governor == general.id
-                            ? Icon(Icons.check_circle, color: colors.primary)
-                            : const Icon(Icons.circle_outlined, size: 18),
-                        onTap: () {
-                          controller.appointGovernor(general.id);
-                          setSheetState(() {});
-                        },
-                      ),
-                  const Divider(height: 20),
-                  Text(
-                    '在野武将 · 登用花费 ${OrderService.recruitGeneralCost} 金',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  if (free.isEmpty)
-                    const _EmptyHint('城中暂无在野名士')
-                  else
-                    for (final general in free)
-                      _GeneralTile(
-                        general: general,
-                        leading: _InitialAvatar(general.name),
-                        trailing: TextButton(
-                          onPressed:
-                              !city.acted &&
-                                  controller.game.player.gold >=
-                                      OrderService.recruitGeneralCost
-                              ? () {
-                                  final result = controller.recruitGeneral(
-                                    general.id,
-                                  );
-                                  setSheetState(() {});
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(result.message)),
-                                  );
-                                }
-                              : null,
-                          child: const Text('登用'),
-                        ),
-                      ),
-                ],
-              ),
+        return SheetFrame(
+          title: '${city.name} · 人事',
+          subtitle: '任命太守 · 太守的政治与统率影响内政与守城',
+          trailing: Text(
+            '金 ${controller.game.player.gold}',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colors.onSurfaceVariant,
             ),
+          ),
+          scrollable: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 6),
+              if (residents.isEmpty)
+                const EmptyHint('城中暂无武将')
+              else
+                for (final general in residents)
+                  _GeneralTile(
+                    general: general,
+                    leading: FactionSeal(factionId: city.owner, size: 30),
+                    trailing: city.governor == general.id
+                        ? Icon(Icons.check_circle, color: colors.primary)
+                        : const Icon(Icons.circle_outlined, size: 18),
+                    onTap: () {
+                      controller.appointGovernor(general.id);
+                      setSheetState(() {});
+                    },
+                  ),
+              const Divider(height: 20),
+              const SheetLabel(
+                '在野武将 · 登用花费 ${OrderService.recruitGeneralCost} 金',
+              ),
+              const SizedBox(height: 6),
+              if (free.isEmpty)
+                const EmptyHint('城中暂无在野名士')
+              else
+                for (final general in free)
+                  _GeneralTile(
+                    general: general,
+                    leading: _InitialAvatar(general.name),
+                    trailing: TextButton(
+                      onPressed:
+                          !city.acted &&
+                              controller.game.player.gold >=
+                                  OrderService.recruitGeneralCost
+                          ? () {
+                              final result = controller.recruitGeneral(
+                                general.id,
+                              );
+                              setSheetState(() {});
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(result.message)),
+                              );
+                            }
+                          : null,
+                      child: const Text('登用'),
+                    ),
+                  ),
+            ],
           ),
         );
       },
@@ -169,23 +148,6 @@ class _InitialAvatar extends StatelessWidget {
         border: Border.all(color: theme.colorScheme.outline),
       ),
       child: Text(name.substring(0, 1), style: theme.textTheme.labelSmall),
-    );
-  }
-}
-
-class _EmptyHint extends StatelessWidget {
-  const _EmptyHint(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      text,
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
     );
   }
 }

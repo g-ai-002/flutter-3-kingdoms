@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../game/game_controller.dart';
 import '../../../game/orders.dart';
 import '../../../models/city.dart';
+import '../../../models/faction.dart';
 import '../../../theme/app_theme.dart';
 import '../common.dart';
 
@@ -21,57 +22,43 @@ Future<CityAction?> showInternalAffairsSheet(
   GameController controller,
   City city,
 ) {
-  final theme = Theme.of(context);
-  final colors = theme.colorScheme;
+  final colors = Theme.of(context).colorScheme;
   final faction = controller.game.player;
   return showModalBottomSheet<CityAction>(
     context: context,
     showDragHandle: true,
-    builder: (sheetContext) => SafeArea(
+    builder: (sheetContext) => SheetFrame(
+      title: '${city.name} · 内政',
+      subtitle: '金 ${faction.gold} · 粮 ${faction.food} · 每城每月限一条指令',
+      trailing: InfoChip(
+        text: city.acted ? '本月已下令' : '本月可下令',
+        color: city.acted ? colors.error : appJade,
+        dense: true,
+      ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.only(top: 10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Text('${city.name} · 内政', style: theme.textTheme.titleSmall),
-                const Spacer(),
-                InfoChip(
-                  text: city.acted ? '本月已下令' : '本月可下令',
-                  color: city.acted ? colors.error : appJade,
-                  dense: true,
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '金 ${faction.gold} · 粮 ${faction.food} · 每城每月限一条指令',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 10),
-            ...CityAction.values.map((action) {
-              final affordable =
-                  faction.gold >= action.goldCost &&
-                  faction.food >= action.foodCost;
-              return Padding(
+            for (final action in CityAction.values)
+              Padding(
                 padding: const EdgeInsets.only(bottom: 7),
                 child: _ActionTile(
                   action: action,
-                  enabled: !city.acted && affordable,
+                  enabled: !city.acted && _affordable(faction, action),
                   onTap: () => Navigator.of(sheetContext).pop(action),
                 ),
-              );
-            }),
+              ),
           ],
         ),
       ),
     ),
   );
 }
+
+bool _affordable(FactionState faction, CityAction action) =>
+    faction.gold >= action.goldCost && faction.food >= action.foodCost;
 
 class _ActionTile extends StatelessWidget {
   const _ActionTile({

@@ -13,17 +13,16 @@ Future<void> showFactionOverviewSheet(
     context: context,
     showDragHandle: true,
     builder: (sheetContext) {
-      final theme = Theme.of(sheetContext);
       final game = controller.game;
-      return SafeArea(
+      return SheetFrame(
+        title: '天下势力',
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.only(top: 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('天下势力', style: theme.textTheme.titleSmall),
-              const SizedBox(height: 10),
               for (final def in FactionDefs.all)
                 _FactionRow(
                   def: def,
