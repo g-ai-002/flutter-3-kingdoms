@@ -353,7 +353,10 @@ class MapComponent extends PositionComponent with TapCallbacks {
 
     // 势力色的旗面，深浅两层让城池在宣纸上立起来。
     canvas.drawRRect(rect.shift(const Offset(0, 2.5)), _shadowPaint);
-    canvas.drawRRect(rect, _ownerPaint..color = FactionDefs.colorOf(city.owner));
+    canvas.drawRRect(
+      rect,
+      _ownerPaint..color = FactionDefs.colorOf(city.owner),
+    );
     canvas.drawRRect(rect.deflate(2.5), _innerEdgePaint);
     canvas.drawRRect(rect, _outerEdgePaint);
 
