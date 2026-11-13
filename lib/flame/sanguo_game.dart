@@ -17,15 +17,20 @@ class SanguoGame extends FlameGame with WidgetsBindingObserver {
     changes?.addListener(_wake);
   }
 
-  /// 地图静止 [idlePauseSeconds] 后停掉渲染循环，点击与状态变化再唤醒。
+  /// 地图静止 [idlePauseSeconds] 后停掉渲染循环；选中城池的脉冲先播放
+  /// [idlePulseSeconds]，随后画面静止。点击与状态变化都会重新唤醒。
   static const double idlePauseSeconds = 1.2;
+  static const double idlePulseSeconds = 2.4;
 
   final GameController controller;
   final LogicRate logicRate;
   final Listenable? changes;
   final ValueNotifier<Brightness> _brightness;
+  final MapIdlePolicy _idlePolicy = MapIdlePolicy(
+    pulseSeconds: idlePulseSeconds,
+    idleSeconds: idlePauseSeconds,
+  );
   MapComponent? _map;
-  double _idle = 0;
   bool _appActive = true;
   int _coverDepth = 0;
 
@@ -68,15 +73,13 @@ class SanguoGame extends FlameGame with WidgetsBindingObserver {
     super.update(dt);
     final map = _map;
     if (paused || map == null) return;
-    // 选中城池的脉冲需要逐帧推进，其余静止画面没有必要重绘。
-    if (controller.selectedCityId != null) {
-      _idle = 0;
-      return;
-    }
-    _idle += dt;
-    if (_idle < idlePauseSeconds) return;
-    _idle = 0;
-    pauseEngine();
+    // 选中脉冲只播放数秒，随后与静止地图一样停帧，避免 60/120Hz 空转。
+    final shouldPause = _idlePolicy.tick(
+      dt,
+      selected: controller.selectedCityId != null,
+    );
+    map.pulseActive = _idlePolicy.pulse;
+    if (shouldPause) pauseEngine();
   }
 
   /// 切到后台立即停掉渲染循环，回到前台再按需恢复。
@@ -92,7 +95,9 @@ class SanguoGame extends FlameGame with WidgetsBindingObserver {
   }
 
   void _wake() {
-    _idle = 0;
+    _idlePolicy.wake();
+    final map = _map;
+    if (map != null) map.pulseActive = true;
     if (!_suspended && paused) resumeEngine();
   }
 

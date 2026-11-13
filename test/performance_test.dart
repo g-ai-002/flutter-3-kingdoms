@@ -9,6 +9,7 @@ import 'package:flutter_3_kingdoms/flame/sanguo_game.dart';
 import 'package:flutter_3_kingdoms/game/game_controller.dart';
 import 'package:flutter_3_kingdoms/game/orders.dart';
 import 'package:flutter_3_kingdoms/services/tone_synth.dart';
+import 'package:flutter_3_kingdoms/utils/logic_rate.dart';
 
 void main() {
   test('月度收支一次汇总与逐项求和一致', () {
@@ -58,7 +59,7 @@ void main() {
     game.onDispose();
   });
 
-  testWidgets('地图静态图层按修订号缓存，选中不触发重录', (tester) async {
+  testWidgets('地图地形、徽记与选中层分别缓存，内政不重录地图', (tester) async {
     final controller = GameController(factionId: 'wei', seed: 3);
     final brightness = ValueNotifier(Brightness.light);
     addTearDown(brightness.dispose);
@@ -68,24 +69,70 @@ void main() {
     final canvas = Canvas(recorder);
 
     map.render(canvas);
-    expect(map.staticLayerBuilds, 1);
+    expect(map.terrainLayerBuilds, 1);
+    expect(map.badgeLayerBuilds, 1);
+    expect(map.selectionLayerBuilds, 0);
+
     map.render(canvas);
-    expect(map.staticLayerBuilds, 1);
+    expect(map.terrainLayerBuilds, 1);
+    expect(map.badgeLayerBuilds, 1);
 
     controller.selectCity('xuchang');
     map.render(canvas);
-    expect(map.staticLayerBuilds, 1);
+    expect(map.terrainLayerBuilds, 1);
+    expect(map.badgeLayerBuilds, 1);
+    expect(map.selectionLayerBuilds, 1);
 
-    controller.selectCity(null);
-    controller.endTurn();
+    // 招商只改商业与钱粮，地图外观未变，三个图层都不重录。
+    expect(controller.issueOrder(CityAction.trade).success, isTrue);
     map.render(canvas);
-    expect(map.staticLayerBuilds, 2);
+    expect(map.terrainLayerBuilds, 1);
+    expect(map.badgeLayerBuilds, 1);
+    expect(map.selectionLayerBuilds, 1);
 
+    // 换太守会改变徽记上的金印，徽记与选中层一起重录。
+    controller.appointGovernor('xunyu');
+    map.render(canvas);
+    expect(map.terrainLayerBuilds, 1);
+    expect(map.badgeLayerBuilds, 2);
+    expect(map.selectionLayerBuilds, 2);
+
+    // 换选中城池只重录选中层。
+    controller.selectCity('puyang');
+    map.render(canvas);
+    expect(map.badgeLayerBuilds, 2);
+    expect(map.selectionLayerBuilds, 3);
+
+    // 主题切换才重录地形。
     brightness.value = Brightness.dark;
     map.render(canvas);
-    expect(map.staticLayerBuilds, 3);
+    expect(map.terrainLayerBuilds, 2);
+    expect(map.badgeLayerBuilds, 3);
+    expect(map.selectionLayerBuilds, 4);
 
     recorder.endRecording().dispose();
+  });
+
+  test('选中脉冲播完后停帧，点击或数据变化重新唤醒', () {
+    final policy = MapIdlePolicy();
+    expect(policy.pulse, isTrue);
+
+    expect(policy.tick(1.0, selected: true), isFalse);
+    expect(policy.pulse, isTrue);
+    expect(policy.tick(1.5, selected: true), isFalse);
+    expect(policy.pulse, isFalse);
+    expect(policy.tick(1.1, selected: true), isFalse);
+    expect(policy.tick(0.2, selected: true), isTrue);
+
+    policy.wake();
+    expect(policy.pulse, isTrue);
+    expect(policy.tick(0.4, selected: true), isFalse);
+
+    // 没有选中城池时不做脉冲，直接按静置时长停帧。
+    policy.wake();
+    expect(policy.tick(0.6, selected: false), isFalse);
+    expect(policy.pulse, isFalse);
+    expect(policy.tick(0.7, selected: false), isTrue);
   });
 
   test('后台合成与主线程合成的音效字节一致', () async {
