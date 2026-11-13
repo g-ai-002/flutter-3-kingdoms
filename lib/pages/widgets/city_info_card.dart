@@ -38,6 +38,7 @@ class CityInfoCard extends StatelessWidget {
           style: theme.textTheme.titleSmall?.copyWith(fontSize: 14),
         ),
         InfoChip(text: city.terrain.label, dense: true),
+        InfoChip(text: city.troopType.label, dense: true, color: appRed),
         _metric(Icons.groups_outlined, '${city.troops}', theme, bold: true),
         _metric(Icons.person_outline, governor?.name ?? '无太守', theme),
         _metric(Icons.shield_outlined, '${city.defense}', theme),
@@ -114,7 +115,7 @@ class CityInfoCard extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    '${faction.name} · ${city.terrain.label}',
+                    '${faction.name} · ${city.terrain.label} · ${city.troopType.label}',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colors.onSurfaceVariant,
                       fontSize: 10.5,

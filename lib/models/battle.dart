@@ -39,6 +39,8 @@ class BattleSide {
     required this.attacking,
     this.generalId,
     this.trait = GeneralTrait.balanced,
+    this.skill = GeneralSkill.none,
+    this.troopType = TroopType.infantry,
   }) : initialTroops = troops;
 
   final String factionId;
@@ -54,6 +56,8 @@ class BattleSide {
   final Terrain terrain;
   final bool attacking;
   final GeneralTrait trait;
+  final GeneralSkill skill;
+  final TroopType troopType;
 
   int troops;
   int morale;

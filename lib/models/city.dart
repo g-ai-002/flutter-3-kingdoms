@@ -1,5 +1,42 @@
 import 'dart:ui';
 
+/// 兵种：骑克弩、弩克步、步克骑；水军不参与克制，但在水乡战力大增。
+enum TroopType {
+  infantry('步兵', '结阵而战，克制骑兵'),
+  cavalry('骑兵', '冲突驰突，克制弩兵'),
+  archer('弩兵', '远射制敌，克制步兵'),
+  navy('水军', '习于舟楫，水乡战力大增');
+
+  const TroopType(this.label, this.description);
+
+  final String label;
+  final String description;
+
+  /// 是否克制另一兵种。
+  bool counters(TroopType other) => switch (this) {
+    TroopType.infantry => other == TroopType.cavalry,
+    TroopType.cavalry => other == TroopType.archer,
+    TroopType.archer => other == TroopType.infantry,
+    TroopType.navy => false,
+  };
+
+  /// 对另一兵种的战力系数。
+  double against(TroopType other) => counters(other)
+      ? 1.12
+      : other.counters(this)
+      ? 0.9
+      : 1.0;
+
+  /// 在某种地形上的战力加成。
+  double onTerrain(Terrain terrain) => switch (this) {
+    TroopType.navy => terrain == Terrain.river ? 0.12 : -0.05,
+    TroopType.cavalry => terrain == Terrain.plain ? 0.07 : 0.0,
+    TroopType.archer =>
+      terrain == Terrain.mountain || terrain == Terrain.pass ? 0.07 : 0.0,
+    TroopType.infantry => 0.03,
+  };
+}
+
 /// 地形：影响攻城难度与进攻方的战力发挥。
 enum Terrain {
   plain('平原', 0.0, 1.0),
@@ -35,6 +72,7 @@ class City {
     required this.troops,
     required this.training,
     required this.population,
+    this.troopType = TroopType.infantry,
     this.governor,
     List<String>? generals,
     this.acted = false,
@@ -46,6 +84,7 @@ class City {
   final Offset position;
   final Terrain terrain;
   final List<String> neighbors;
+  final TroopType troopType;
 
   String owner;
   String? governor;

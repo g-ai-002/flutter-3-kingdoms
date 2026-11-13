@@ -59,6 +59,16 @@ class HelpPage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const _Section(
+            title: '兵种与技能',
+            icon: Icons.shield_moon_outlined,
+            children: [
+              _Paragraph('四兵种相克：步兵克骑兵，骑兵克弩兵，弩兵克步兵；水军不参与克制，但在水乡战力大增。'),
+              _Paragraph('出兵前可在出征面板查看双方兵种；以克制守军的兵种出战，能以更少兵力破城。'),
+              _Paragraph('武将技能：神武增战力与单挑，铁壁利守城，火计强火攻，治世益内政，疾行利突袭。'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const _Section(
             title: '攻城战',
             icon: Icons.gavel_rounded,
             children: [
@@ -75,8 +85,9 @@ class HelpPage extends StatelessWidget {
             icon: Icons.lightbulb_outline,
             children: [
               _Paragraph('先开垦与招商稳住钱粮，再征兵训练，避免粮草见底。'),
-              _Paragraph('进攻前查看守军与城防，胜算不足时先削弱邻城或提升训练。'),
+              _Paragraph('进攻前查看守军、城防与兵种，胜算不足时先削弱邻城或提升训练。'),
               _Paragraph('在野名将多藏于大城，如洛阳张辽、襄阳诸葛亮、天水马超。'),
+              _Paragraph('对局顶部可随时存档；结束本月与退到后台会自动存档，首页可继续征战。'),
               _Paragraph('地图操作：点选城池查看详情，底部按钮执行内政、出征与人事。'),
             ],
           ),

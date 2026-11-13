@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../game/engine/battle_engine.dart';
 import '../models/battle.dart';
 import '../models/faction.dart';
+import '../models/general.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import 'widgets/common.dart';
@@ -350,7 +351,10 @@ class _CampCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${side.generalName} · 统 ${side.lead} 武 ${side.wu}',
+                      side.skill == GeneralSkill.none
+                          ? '${side.generalName} · 统 ${side.lead} 武 ${side.wu}'
+                          : '${side.generalName} · ${side.skill.label} · '
+                                '统 ${side.lead} 武 ${side.wu}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -409,6 +413,11 @@ class _CampCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '士气 ${side.morale} · 训练 ${side.training} · 城防 ${side.defense}',
+            textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+            style: const TextStyle(color: Color(0xFFC9B294), fontSize: 9.5),
+          ),
+          Text(
+            side.troopType.label,
             textAlign: alignEnd ? TextAlign.right : TextAlign.left,
             style: const TextStyle(color: Color(0xFFC9B294), fontSize: 9.5),
           ),

@@ -49,9 +49,10 @@ class OrderService {
     final governor = _governorOf(state, city);
     final politics = governor?.politics ?? 40;
     final lead = governor?.lead ?? 40;
-    final bonus = governor != null && governor.trait == GeneralTrait.statesman
+    var bonus = governor != null && governor.trait == GeneralTrait.statesman
         ? 2
         : 0;
+    if (governor?.skill == GeneralSkill.statecraft) bonus += 1;
 
     faction.gold -= action.goldCost;
     faction.food -= action.foodCost;
@@ -149,7 +150,9 @@ class OrderService {
     }
     general.factionId = city.owner;
     general.loyalty = min(90, 55 + politics ~/ 3);
-    city.generalIds.add(general.id);
+    if (!city.generalIds.contains(general.id)) {
+      city.generalIds.add(general.id);
+    }
     city.governor ??= general.id;
     state.addChronicle(
       '${city.name}：${general.name} 感其诚意，愿效犬马之劳。',

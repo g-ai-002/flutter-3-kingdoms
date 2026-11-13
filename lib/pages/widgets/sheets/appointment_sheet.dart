@@ -134,7 +134,9 @@ class _GeneralTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: leading,
       title: Text(
-        '${general.name} · ${general.trait.label}',
+        general.skill == GeneralSkill.none
+            ? '${general.name} · ${general.trait.label}'
+            : '${general.name} · ${general.trait.label} · ${general.skill.label}',
         style: theme.textTheme.titleSmall?.copyWith(fontSize: 13),
       ),
       subtitle: Text(

@@ -86,6 +86,12 @@ class _CampaignSheetState extends State<_CampaignSheet> {
   double get _maxTroops =>
       (widget.source.troops - 200).clamp(500, double.infinity).toDouble();
 
+  String _counterHint(City source, City target) {
+    if (source.troopType.counters(target.troopType)) return '我军兵种占优';
+    if (target.troopType.counters(source.troopType)) return '我军兵种受制';
+    return '兵种互不克制';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -166,6 +172,12 @@ class _CampaignSheetState extends State<_CampaignSheet> {
                             color: colors.onSurfaceVariant,
                           ),
                         ),
+                        const SizedBox(width: 5),
+                        InfoChip(
+                          text: _target.troopType.label,
+                          dense: true,
+                          color: appRed,
+                        ),
                         const Spacer(),
                         InfoChip(
                           text: preview.odds.label,
@@ -179,6 +191,14 @@ class _CampaignSheetState extends State<_CampaignSheet> {
                       '守军 ${_target.troops} · 城防 ${_target.defense} · '
                       '训练 ${_target.training} · '
                       '守将 ${defender?.name ?? '无名守将'}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        height: 1.5,
+                      ),
+                    ),
+                    Text(
+                      '${source.troopType.label} 对 ${_target.troopType.label} · '
+                      '${_counterHint(source, _target)}',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colors.onSurfaceVariant,
                         height: 1.5,

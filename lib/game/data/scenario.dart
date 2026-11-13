@@ -73,6 +73,76 @@ class GeneralDef {
 class Scenario {
   Scenario._();
 
+  /// 各城兵种：北方多骑兵，山地关隘多弩兵，江河之地多水军，其余为步兵。
+  static const Map<String, TroopType> troopTypes = {
+    'wuwei': TroopType.cavalry,
+    'tianshui': TroopType.cavalry,
+    'changan': TroopType.cavalry,
+    'jinyang': TroopType.cavalry,
+    'ji': TroopType.cavalry,
+    'ye': TroopType.cavalry,
+    'nanpi': TroopType.cavalry,
+    'hanzhong': TroopType.archer,
+    'zitong': TroopType.archer,
+    'yongan': TroopType.archer,
+    'beihai': TroopType.navy,
+    'xiangyang': TroopType.navy,
+    'jiangling': TroopType.navy,
+    'changsha': TroopType.navy,
+    'chaisang': TroopType.navy,
+    'jianye': TroopType.navy,
+    'wu': TroopType.navy,
+    'kuaiji': TroopType.navy,
+  };
+
+  /// 名将技能：只列有特技者，其余为无。
+  static const Map<String, GeneralSkill> generalSkills = {
+    'caocao': GeneralSkill.statecraft,
+    'xiahoudun': GeneralSkill.divineMight,
+    'xiahouyuan': GeneralSkill.swiftRaid,
+    'caoren': GeneralSkill.ironWall,
+    'xunyu': GeneralSkill.statecraft,
+    'guojia': GeneralSkill.firestorm,
+    'xuchu': GeneralSkill.divineMight,
+    'dianwei': GeneralSkill.ironWall,
+    'yujin': GeneralSkill.ironWall,
+    'liubei': GeneralSkill.statecraft,
+    'guanyu': GeneralSkill.divineMight,
+    'zhangfei': GeneralSkill.swiftRaid,
+    'zhaoyun': GeneralSkill.swiftRaid,
+    'jianyong': GeneralSkill.statecraft,
+    'sunqian': GeneralSkill.statecraft,
+    'sunquan': GeneralSkill.statecraft,
+    'zhouyu': GeneralSkill.firestorm,
+    'lusu': GeneralSkill.statecraft,
+    'lvmeng': GeneralSkill.swiftRaid,
+    'ganning': GeneralSkill.swiftRaid,
+    'taishici': GeneralSkill.divineMight,
+    'chengpu': GeneralSkill.ironWall,
+    'yanliang': GeneralSkill.divineMight,
+    'wenchou': GeneralSkill.divineMight,
+    'zhanghe': GeneralSkill.swiftRaid,
+    'gaolan': GeneralSkill.ironWall,
+    'tianfeng': GeneralSkill.statecraft,
+    'jushou': GeneralSkill.firestorm,
+    'dongzhuo': GeneralSkill.ironWall,
+    'lvbu': GeneralSkill.divineMight,
+    'liru': GeneralSkill.firestorm,
+    'huaxiong': GeneralSkill.divineMight,
+    'xurong': GeneralSkill.ironWall,
+    'zhangliao': GeneralSkill.swiftRaid,
+    'zhugeliang': GeneralSkill.firestorm,
+    'pangtong': GeneralSkill.firestorm,
+    'machao': GeneralSkill.swiftRaid,
+    'huangzhong': GeneralSkill.divineMight,
+    'weiyan': GeneralSkill.swiftRaid,
+    'luxun': GeneralSkill.firestorm,
+    'jiaxu': GeneralSkill.firestorm,
+    'xushu': GeneralSkill.statecraft,
+    'dengai': GeneralSkill.swiftRaid,
+    'jiangwei': GeneralSkill.swiftRaid,
+  };
+
   static const List<CityDef> cityDefs = [
     CityDef(
       id: 'wuwei',
@@ -610,6 +680,7 @@ class Scenario {
           troops: def.troops,
           training: def.training,
           population: def.population,
+          troopType: troopTypes[def.id] ?? TroopType.infantry,
         ),
     };
     final generals = <String, General>{
@@ -625,10 +696,11 @@ class Scenario {
           politics: def.politics,
           loyalty: def.loyalty,
           trait: def.trait,
+          skill: generalSkills[def.id] ?? GeneralSkill.none,
         ),
     };
+    // 在野武将也记在所在城池名下，登用与来投事件据此找到他们。
     for (final general in generals.values) {
-      if (general.free) continue;
       cities[general.cityId]?.generalIds.add(general.id);
     }
     // 太守：都城由君主兼任，其余城池选统率最高者。

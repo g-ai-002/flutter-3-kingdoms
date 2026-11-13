@@ -118,6 +118,7 @@ class BattleEngine {
     }
     if (attackerTactic == BattleTactic.raid) {
       defenderLoss *= 0.75 + random.nextDouble() * 0.7;
+      if (state.attacker.skill == GeneralSkill.swiftRaid) attackerLoss *= 0.9;
     }
 
     final defenderBefore = state.defender.troops;
@@ -218,11 +219,24 @@ class BattleEngine {
         (1.18 + (side.intel - foe.intel) / 150).clamp(0.8, 1.7).toDouble(),
       _ => tactic.attack,
     };
+    // 兵种相克、地形专精与武将技能都是确定性加成，纸面胜算因此可预期。
+    final counterFactor = side.troopType.against(foe.troopType);
+    final troopTerrain = 1 + side.troopType.onTerrain(side.terrain);
+    final skillFactor = switch (side.skill) {
+      GeneralSkill.divineMight => 1.06,
+      GeneralSkill.ironWall => side.attacking ? 1.0 : 1.1,
+      GeneralSkill.firestorm => tactic == BattleTactic.fire ? 1.12 : 1.0,
+      GeneralSkill.swiftRaid => tactic == BattleTactic.raid ? 1.12 : 1.0,
+      GeneralSkill.statecraft || GeneralSkill.none => 1.0,
+    };
     return side.troops *
         trainFactor *
         moraleFactor *
         generalFactor *
         tacticFactor *
+        counterFactor *
+        troopTerrain *
+        skillFactor *
         (side.attacking ? terrainFactor : defenseFactor);
   }
 
@@ -256,9 +270,11 @@ class BattleEngine {
 
   static void _tryDuel(BattleState state, Random random) {
     if (state.attacker.wu < 88 || state.defender.wu < 88) return;
-    if (random.nextDouble() > 0.3) return;
+    final divine = state.attacker.skill == GeneralSkill.divineMight ? 0.12 : 0.0;
+    if (random.nextDouble() > 0.3 + divine) return;
+    final edge = state.attacker.skill == GeneralSkill.divineMight ? 8 : 0;
     final attackerWins =
-        state.attacker.wu + random.nextInt(20) >=
+        state.attacker.wu + edge + random.nextInt(20) >=
         state.defender.wu + random.nextInt(20);
     if (attackerWins) {
       state.defender.morale = max(20, state.defender.morale - 12);

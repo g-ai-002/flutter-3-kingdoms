@@ -12,6 +12,21 @@ enum GeneralTrait {
   final String description;
 }
 
+/// 武将技能：在战场上或内政中提供额外的确定性加成。
+enum GeneralSkill {
+  none('—', '无特殊技能'),
+  divineMight('神武', '阵前冲杀，战力与单挑更胜一筹'),
+  ironWall('铁壁', '稳守坚城，守城战力显著提升'),
+  firestorm('火计', '火攻威力大增'),
+  statecraft('治世', '执行内政时效果更佳'),
+  swiftRaid('疾行', '突袭更为犀利，自损更少');
+
+  const GeneralSkill(this.label, this.description);
+
+  final String label;
+  final String description;
+}
+
 /// 武将运行时状态：能力值 1-100，可在城池间调动、被登用或成为俘虏。
 class General {
   General({
@@ -25,6 +40,7 @@ class General {
     required this.politics,
     required this.loyalty,
     required this.trait,
+    this.skill = GeneralSkill.none,
   });
 
   final String id;
@@ -37,6 +53,7 @@ class General {
   final int politics;
   int loyalty;
   final GeneralTrait trait;
+  final GeneralSkill skill;
 
   bool get free => factionId == freeFactionId;
 
