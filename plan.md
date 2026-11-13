@@ -42,7 +42,7 @@
 
 ### v0.1.2 (PATCH) — 2026-11-14
 
-- **状态**: 开发完成，构建与发布进行中
+- **状态**: Android / Web 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.1.2)）；Windows 产物待 `windows-flutter` runner 恢复后补发 ⚠️
 - **目标**: 在不改变玩法与数值的前提下降低渲染、启动与结算开销，减少掉帧和卡顿。
 - **任务**:
   - [x] 地图静态图层：底图、驿道、城池徽记与城名兵数合并为 `ui.Picture`，仅在数据修订号、主题或缩放档变化时重录
@@ -55,7 +55,8 @@
   - [x] 月度收支单遍汇总，结算与 AI 发展共用同一份金、粮、耗数据
   - [x] 前后台生命周期：切到后台暂停 Flame 引擎，回到前台按需恢复，退出对局不残留渲染任务
   - [x] 新增性能测试：静态图层缓存、修订号语义、收支汇总与后台音效一致性
-  - [ ] 构建流水线：Android / Web 产物与 Gitea Release（Windows runner 仍离线，待恢复后补发）
+  - [x] 构建流水线：Dart 测试、Android、Web 与 Pages 任务通过，Web 站点已发布到 `tea-pages/v0.1.2`
+  - [ ] Windows 产物：Gitea 的两台 `windows-flutter` runner 仍离线，恢复后手动运行 `build` 工作流选定 `v0.1.2` 补发
 
 ### v0.1.1 (PATCH) — 2026-11-14
 
