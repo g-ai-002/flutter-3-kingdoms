@@ -225,9 +225,9 @@ class _BattlePageState extends State<BattlePage> {
   }
 
   Widget _buildLog() {
-    final entries = _state.log.length <= 5
-        ? _state.log
-        : _state.log.sublist(_state.log.length - 5);
+    // 只取末尾五条，避免每回合复制整段战报。
+    final log = _state.log;
+    final start = log.length > 5 ? log.length - 5 : 0;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -243,7 +243,7 @@ class _BattlePageState extends State<BattlePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (final entry in entries)
+            for (final entry in log.skip(start))
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
