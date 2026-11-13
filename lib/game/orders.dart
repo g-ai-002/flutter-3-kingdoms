@@ -101,16 +101,17 @@ class OrderService {
         effects['城防'] = gain;
         break;
     }
+    final gains = effects.entries
+        .map((entry) => '${entry.key} +${entry.value}')
+        .join('，');
     state.addChronicle(
-      '${city.name}：${action.label}，${effects.entries.map((e) => '${e.key}+${e.value}').join('，')}',
+      '${city.name}：${action.label}，$gains',
       ChronicleKind.order,
       factionId: city.owner,
     );
     return OrderResult(
       success: true,
-      message:
-          '${city.name} ${action.label}完成 · '
-          '${effects.entries.map((e) => '${e.key} +${e.value}').join('，')}',
+      message: '${city.name} ${action.label}完成 · $gains',
       effects: effects,
     );
   }

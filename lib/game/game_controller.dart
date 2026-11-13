@@ -264,50 +264,58 @@ class GameController extends ChangeNotifier {
     required int troops,
     required String attackerFaction,
   }) {
-    final defender = state.defenderOf(target);
-    final attackerMorale = (88 + (attacker?.lead ?? 50) / 8)
-        .clamp(70, 120)
-        .round();
-    final defenderMorale = (96 + target.defense / 10).clamp(80, 125).round();
     return BattleSetup(
-      attacker: BattleSide(
-        factionId: attackerFaction,
-        cityId: source.id,
-        cityName: source.name,
-        generalId: attacker?.id,
-        generalName: attacker?.name ?? '偏将',
-        lead: attacker?.lead ?? 50,
-        wu: attacker?.wu ?? 50,
-        intel: attacker?.intel ?? 45,
-        training: source.training,
-        defense: 0,
-        troops: troops,
-        morale: attackerMorale,
-        terrain: target.terrain,
+      attacker: _battleSide(
+        city: source,
+        general: attacker,
         attacking: true,
-        trait: attacker?.trait ?? GeneralTrait.balanced,
-        skill: attacker?.skill ?? GeneralSkill.none,
-        troopType: source.troopType,
-      ),
-      defender: BattleSide(
-        factionId: target.owner,
-        cityId: target.id,
-        cityName: target.name,
-        generalId: defender?.id,
-        generalName: defender?.name ?? '守将',
-        lead: defender?.lead ?? 55,
-        wu: defender?.wu ?? 55,
-        intel: defender?.intel ?? 45,
-        training: target.training,
-        defense: target.defense,
-        troops: target.troops,
-        morale: defenderMorale,
+        factionId: attackerFaction,
+        troops: troops,
+        morale: (88 + (attacker?.lead ?? 50) / 8).clamp(70, 120).round(),
         terrain: target.terrain,
-        attacking: false,
-        trait: defender?.trait ?? GeneralTrait.commander,
-        skill: defender?.skill ?? GeneralSkill.none,
-        troopType: target.troopType,
       ),
+      defender: _battleSide(
+        city: target,
+        general: state.defenderOf(target),
+        attacking: false,
+        factionId: target.owner,
+        troops: target.troops,
+        morale: (96 + target.defense / 10).clamp(80, 125).round(),
+        terrain: target.terrain,
+      ),
+    );
+  }
+
+  /// 战场一方：攻守两方只在默认主将、城防与任务名上不同，其余口径一致。
+  BattleSide _battleSide({
+    required City city,
+    required General? general,
+    required bool attacking,
+    required String factionId,
+    required int troops,
+    required int morale,
+    required Terrain terrain,
+  }) {
+    return BattleSide(
+      factionId: factionId,
+      cityId: city.id,
+      cityName: city.name,
+      generalId: general?.id,
+      generalName: general?.name ?? (attacking ? '偏将' : '守将'),
+      lead: general?.lead ?? (attacking ? 50 : 55),
+      wu: general?.wu ?? (attacking ? 50 : 55),
+      intel: general?.intel ?? 45,
+      training: city.training,
+      defense: attacking ? 0 : city.defense,
+      troops: troops,
+      morale: morale,
+      terrain: terrain,
+      attacking: attacking,
+      trait:
+          general?.trait ??
+          (attacking ? GeneralTrait.balanced : GeneralTrait.commander),
+      skill: general?.skill ?? GeneralSkill.none,
+      troopType: city.troopType,
     );
   }
 
@@ -351,7 +359,7 @@ class GameController extends ChangeNotifier {
         ChronicleKind.battle,
         factionId: attackerFaction,
       );
-      _refreshAlive();
+      state.syncAlive();
       return;
     }
     source.troops += result.attackerRemaining;
@@ -395,14 +403,10 @@ class GameController extends ChangeNotifier {
   // ======================== AI ========================
 
   void _runAiTurn() {
+    state.syncAlive();
     for (final def in FactionDefs.all) {
       if (def.id == state.playerFaction) continue;
-      final faction = state.factions[def.id]!;
-      if (!faction.alive) continue;
-      if (!state.hasCities(def.id)) {
-        faction.alive = false;
-        continue;
-      }
+      if (!state.factions[def.id]!.alive) continue;
       // 先议战事再理内政：出征会占用城池本月指令，发展则填满剩余城池。
       _aiAttack(def.id);
       _aiDevelop(def.id);
@@ -418,30 +422,27 @@ class GameController extends ChangeNotifier {
     final upkeep = state.upkeepOf(factionId);
     for (final city in cities) {
       if (city.acted) continue;
-      final frontier = city.neighbors.any(
-        (id) => state.cities[id]!.owner != factionId,
-      );
-      CityAction? action;
-      if (faction.food < upkeep * 3 || city.agriculture < 45) {
-        action = CityAction.reclaim;
-      } else if (faction.gold < 500 || city.commerce < 45) {
-        action = CityAction.trade;
-      } else if (city.order < 55) {
-        action = CityAction.patrol;
-      } else if (frontier && city.defense < 55) {
-        action = CityAction.fortify;
-      } else if (city.training < 65) {
-        action = CityAction.train;
-      } else if (city.troops < city.maxTroops * 0.7) {
-        action = CityAction.recruit;
-      } else {
-        action = _random.nextBool() ? CityAction.reclaim : CityAction.train;
-      }
+      final action = _aiAction(faction, city, upkeep);
       if (faction.gold < action.goldCost || faction.food < action.foodCost) {
         continue;
       }
       OrderService.apply(state, city, action, _random);
     }
+  }
+
+  CityAction _aiAction(FactionState faction, City city, int upkeep) {
+    final frontier = city.neighbors.any(
+      (id) => state.cities[id]!.owner != faction.id,
+    );
+    if (faction.food < upkeep * 3 || city.agriculture < 45) {
+      return CityAction.reclaim;
+    }
+    if (faction.gold < 500 || city.commerce < 45) return CityAction.trade;
+    if (city.order < 55) return CityAction.patrol;
+    if (frontier && city.defense < 55) return CityAction.fortify;
+    if (city.training < 65) return CityAction.train;
+    if (city.troops < city.maxTroops * 0.7) return CityAction.recruit;
+    return _random.nextBool() ? CityAction.reclaim : CityAction.train;
   }
 
   /// AI 也会在家门口登用在野名士，给玩家制造压力。
@@ -530,7 +531,7 @@ class GameController extends ChangeNotifier {
       faction.food += (economy.food * multiplier).round() - economy.upkeep;
       if (faction.food < 0) _applyStarvation(def, faction);
     }
-    _refreshAlive();
+    state.syncAlive();
   }
 
   /// 粮草见底：各城按兵力比例逃散，治安同步下滑。
@@ -563,13 +564,6 @@ class GameController extends ChangeNotifier {
       '${state.year}年${state.month}月，天下局势暗流涌动。',
       ChronicleKind.system,
     );
-  }
-
-  void _refreshAlive() {
-    for (final def in FactionDefs.all) {
-      final faction = state.factions[def.id]!;
-      faction.alive = state.hasCities(def.id);
-    }
   }
 
   void _checkVictory() {

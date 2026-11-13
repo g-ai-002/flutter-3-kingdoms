@@ -14,9 +14,16 @@ import 'package:flutter_3_kingdoms/utils/logic_rate.dart';
 void main() {
   test('月度收支一次汇总与逐项求和一致', () {
     final game = GameController(factionId: 'wei', seed: 11).game;
+    final cities = game.citiesOf('wei').toList();
     final economy = game.economyOf('wei');
-    expect(economy.gold, game.goldIncomeOf('wei'));
-    expect(economy.food, game.foodIncomeOf('wei'));
+    expect(
+      economy.gold,
+      cities.fold<int>(0, (sum, city) => sum + city.goldIncome),
+    );
+    expect(
+      economy.food,
+      cities.fold<int>(0, (sum, city) => sum + city.foodIncome),
+    );
     expect(economy.upkeep, game.upkeepOf('wei'));
 
     final empty = game.economyOf('none');

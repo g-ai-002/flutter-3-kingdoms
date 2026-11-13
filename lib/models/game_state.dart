@@ -5,6 +5,9 @@ import 'difficulty.dart';
 import 'faction.dart';
 import 'general.dart';
 
+/// 势力版图统计：一次遍历同时得出城池数与总兵力。
+typedef FactionTally = ({int cities, int troops});
+
 /// 一局争霸的最终结局。
 enum GameOutcome {
   victory('一统山河'),
@@ -86,21 +89,21 @@ class GameState {
     return residents.first;
   }
 
-  int cityCount(String factionId) {
-    var count = 0;
-    for (final city in cities.values) {
-      if (city.owner == factionId) count++;
+  /// 势力版图：城池数与众兵，一次遍历算齐，供地图、面板与外交共用。
+  FactionTally tallyOf(String factionId) {
+    var cities = 0;
+    var troops = 0;
+    for (final city in this.cities.values) {
+      if (city.owner != factionId) continue;
+      cities++;
+      troops += city.troops;
     }
-    return count;
+    return (cities: cities, troops: troops);
   }
 
-  int troopsOf(String factionId) {
-    var total = 0;
-    for (final city in cities.values) {
-      if (city.owner == factionId) total += city.troops;
-    }
-    return total;
-  }
+  int cityCount(String factionId) => tallyOf(factionId).cities;
+
+  int troopsOf(String factionId) => tallyOf(factionId).troops;
 
   /// 势力每月的金、粮收入与粮草消耗，一次遍历算齐，
   /// 避免结算时对同一批城池反复扫描。
@@ -117,12 +120,6 @@ class GameState {
     return (gold: gold, food: food, upkeep: upkeep);
   }
 
-  /// 势力每月金钱收入，逐城累加。
-  int goldIncomeOf(String factionId) => economyOf(factionId).gold;
-
-  /// 势力每月粮草收入，逐城累加。
-  int foodIncomeOf(String factionId) => economyOf(factionId).food;
-
   /// 势力每月粮草消耗，逐城累加。
   int upkeepOf(String factionId) => economyOf(factionId).upkeep;
 
@@ -137,6 +134,13 @@ class GameState {
   /// 某势力是否仍据有城池。
   bool hasCities(String factionId) =>
       cities.values.any((city) => city.owner == factionId);
+
+  /// 按当前版图同步各势力存亡，失去全部城池者退出争霸。
+  void syncAlive() {
+    for (final faction in factions.values) {
+      faction.alive = hasCities(faction.id);
+    }
+  }
 
   String _pactKey(String a, String b) =>
       a.compareTo(b) <= 0 ? '$a|$b' : '$b|$a';

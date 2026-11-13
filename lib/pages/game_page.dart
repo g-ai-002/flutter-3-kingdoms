@@ -95,6 +95,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
 
   Future<void> _showOutcome() async {
     final game = controller.game;
+    final tally = game.tallyOf(game.playerFaction);
     await _withMapPaused(
       () => showDialog<void>(
         context: context,
@@ -114,10 +115,8 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
                 style: const TextStyle(height: 1.6),
               ),
               const SizedBox(height: 12),
-              Text(
-                '据城 ${game.cityCount(game.playerFaction)} / ${game.totalCities}',
-              ),
-              Text('带甲 ${game.troopsOf(game.playerFaction)}'),
+              Text('据城 ${tally.cities} / ${game.totalCities}'),
+              Text('带甲 ${tally.troops}'),
               Text('征战 ${game.elapsedMonths} 个月'),
             ],
           ),
@@ -225,9 +224,9 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   void _push(Widget page) {
     unawaited(
       _withMapPaused(
-        () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => page),
-        ),
+        () =>
+            Navigator.of(context)
+                .push(MaterialPageRoute<void>(builder: (_) => page)),
       ),
     );
   }
@@ -335,9 +334,8 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
                   compact ? '点选城池' : '点选城池查看详情；选中本方城池后可下令',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
+                  style: Theme.of(ctx).textTheme.labelSmall
+                      ?.copyWith(color: colors.onSurfaceVariant),
                 ),
               ),
             ],
@@ -366,11 +364,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
             _withMapPaused(() => showSaveSheet(context, controller)),
           ),
         ),
-        _tool(
-          Icons.menu_book_outlined,
-          '玩法说明',
-          () => _push(const HelpPage()),
-        ),
+        _tool(Icons.menu_book_outlined, '玩法说明', () => _push(const HelpPage())),
         _tool(Icons.settings_outlined, '设置', () => _push(const SettingsPage())),
       ],
     );
@@ -402,6 +396,7 @@ class _FactionHudCard extends StatelessWidget {
     final game = controller.game;
     final faction = game.player;
     final def = FactionDefs.byId(game.playerFaction);
+    final tally = game.tallyOf(game.playerFaction);
     final compact = HudScope.compactOf(context);
     final resources = '金 ${faction.gold} · 粮 ${faction.food}';
     final identity = Column(
@@ -461,11 +456,7 @@ class _FactionHudCard extends StatelessWidget {
             identity,
           ],
         ),
-        InfoChip(
-          text: '城 ${game.cityCount(game.playerFaction)}',
-          dense: true,
-          color: def.color,
-        ),
+        InfoChip(text: '城 ${tally.cities}', dense: true, color: def.color),
         InfoChip(text: '金 ${faction.gold}', dense: true, color: appGold),
         InfoChip(text: '粮 ${faction.food}', dense: true, color: appJade),
       ],
@@ -606,9 +597,7 @@ class _GameControls extends StatelessWidget {
                   label,
                   style: theme.textTheme.labelSmall?.copyWith(
                     fontSize: 10,
-                    color: enabled
-                        ? colors.onSurface
-                        : colors.onSurfaceVariant,
+                    color: enabled ? colors.onSurface : colors.onSurfaceVariant,
                   ),
                 ),
               ],

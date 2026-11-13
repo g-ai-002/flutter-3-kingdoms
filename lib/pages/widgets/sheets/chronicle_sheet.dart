@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../game/game_controller.dart';
 import '../../../models/chronicle.dart';
 import '../../../theme/app_theme.dart';
+import '../common.dart';
 
 /// 战报：按月记录的内政、战斗与随机事件。
 Future<void> showChronicleSheet(
@@ -36,8 +37,7 @@ class _ChronicleSheetState extends State<_ChronicleSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
+    final colors = Theme.of(context).colorScheme;
     final game = widget.controller.game;
     final entries = game.chronicle.reversed
         .where(
@@ -52,36 +52,20 @@ class _ChronicleSheetState extends State<_ChronicleSheet> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: Row(
-            children: [
-              Text('战报', style: theme.textTheme.titleSmall),
-              const SizedBox(width: 8),
-              Text(
-                '共 ${game.chronicle.length} 条',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
-              FilterChip(
-                label: const Text('只看我方'),
-                selected: _onlyMine,
-                onSelected: (value) => setState(() => _onlyMine = value),
-              ),
-            ],
+          child: SheetHeader(
+            title: '战报',
+            subtitle: '共 ${game.chronicle.length} 条',
+            trailing: FilterChip(
+              label: const Text('只看我方'),
+              selected: _onlyMine,
+              onSelected: (value) => setState(() => _onlyMine = value),
+            ),
           ),
         ),
         const Divider(height: 1),
         Expanded(
           child: entries.isEmpty
-              ? Center(
-                  child: Text(
-                    '暂无战报',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
-                )
+              ? const Center(child: EmptyHint('暂无战报'))
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
                   itemCount: entries.length,

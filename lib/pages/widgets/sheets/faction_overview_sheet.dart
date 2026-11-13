@@ -4,6 +4,7 @@ import '../../../game/diplomacy.dart';
 import '../../../game/game_controller.dart';
 import '../../../models/diplomacy.dart';
 import '../../../models/faction.dart';
+import '../../../models/game_state.dart';
 import '../common.dart';
 
 /// 五方势力总览：城池、兵力、钱粮、存亡与遣使交涉。
@@ -38,32 +39,34 @@ Future<void> showFactionOverviewSheet(
                     ),
                   ),
                 for (final def in FactionDefs.all)
-                  _FactionRow(
-                    def: def,
-                    isPlayer: def.id == game.playerFaction,
-                    alive: game.factions[def.id]!.alive,
-                    cities: game.cityCount(def.id),
-                    troops: game.troopsOf(def.id),
-                    gold: game.factions[def.id]!.gold,
-                    food: game.factions[def.id]!.food,
-                    pactMonths: game.pactMonths(game.playerFaction, def.id),
-                    onEnvoy:
-                        def.id == game.playerFaction ||
-                            !game.factions[def.id]!.alive
-                        ? null
-                        : () => _openEnvoyDialog(
-                            context,
-                            controller,
-                            def,
-                            refresh,
-                          ),
-                  ),
+                  _factionRow(context, controller, def, refresh),
               ],
             ),
           ),
         );
       },
     ),
+  );
+}
+
+/// 一行势力：城池、兵力与钱粮都由同一份运行时状态与版图统计得出。
+Widget _factionRow(
+  BuildContext context,
+  GameController controller,
+  FactionDef def,
+  StateSetter refresh,
+) {
+  final game = controller.game;
+  final faction = game.factions[def.id]!;
+  return _FactionRow(
+    def: def,
+    faction: faction,
+    tally: game.tallyOf(def.id),
+    isPlayer: def.id == game.playerFaction,
+    pactMonths: game.pactMonths(game.playerFaction, def.id),
+    onEnvoy: def.id == game.playerFaction || !faction.alive
+        ? null
+        : () => _openEnvoyDialog(context, controller, def, refresh),
   );
 }
 
@@ -76,6 +79,7 @@ Future<void> _openEnvoyDialog(
 ) async {
   final game = controller.game;
   final pacted = game.hasPact(game.playerFaction, def.id);
+  final odds = DiplomacyService.oddsOf(game, def.id);
   final move = await showDialog<DiplomaticMove>(
     context: context,
     builder: (dialogContext) {
@@ -97,9 +101,8 @@ Future<void> _openEnvoyDialog(
               _MoveButton(
                 move: move,
                 gold: game.player.gold,
-                chance: DiplomacyService.chanceOf(game, def.id, move),
-                blocked:
-                    move == DiplomaticMove.vassalize
+                chance: odds[move]!,
+                blocked: move == DiplomaticMove.vassalize
                     ? !DiplomacyService.canVassalize(game, def.id)
                     : pacted,
                 blockedLabel: move == DiplomaticMove.vassalize
@@ -145,8 +148,14 @@ class _MoveButton extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final affordable = gold >= move.goldCost;
+    final enabled = !blocked && affordable;
+    final status = blocked
+        ? blockedLabel
+        : affordable
+        ? '成算 ${(chance * 100).round()}%'
+        : '金钱不足';
     return OutlinedButton(
-      onPressed: blocked || !affordable ? null : onPressed,
+      onPressed: enabled ? onPressed : null,
       style: OutlinedButton.styleFrom(
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -174,13 +183,9 @@ class _MoveButton extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            blocked
-                ? blockedLabel
-                : affordable
-                ? '成算 ${(chance * 100).round()}%'
-                : '金钱不足',
+            status,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: blocked || !affordable ? colors.outline : colors.primary,
+              color: enabled ? colors.primary : colors.outline,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -193,23 +198,17 @@ class _MoveButton extends StatelessWidget {
 class _FactionRow extends StatelessWidget {
   const _FactionRow({
     required this.def,
+    required this.faction,
+    required this.tally,
     required this.isPlayer,
-    required this.alive,
-    required this.cities,
-    required this.troops,
-    required this.gold,
-    required this.food,
     required this.pactMonths,
     required this.onEnvoy,
   });
 
   final FactionDef def;
+  final FactionState faction;
+  final FactionTally tally;
   final bool isPlayer;
-  final bool alive;
-  final int cities;
-  final int troops;
-  final int gold;
-  final int food;
   final int pactMonths;
   final VoidCallback? onEnvoy;
 
@@ -254,7 +253,7 @@ class _FactionRow extends StatelessWidget {
                           color: colors.primary,
                         ),
                       ],
-                      if (!alive) ...[
+                      if (!faction.alive) ...[
                         const SizedBox(width: 5),
                         const InfoChip(
                           text: '已亡',
@@ -270,7 +269,8 @@ class _FactionRow extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
-                        '$cities 城 · 兵 $troops · 金 $gold · 粮 $food',
+                        '${tally.cities} 城 · 兵 ${tally.troops} · '
+                        '金 ${faction.gold} · 粮 ${faction.food}',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),

@@ -13,41 +13,72 @@ class DiplomacyService {
 
   /// 出使武将：本方政治最高者；无将时由君主亲往。
   static General? envoyOf(GameState state) {
-    final envoys = state.generals.values
-        .where((general) => general.factionId == state.playerFaction)
-        .toList()
-      ..sort((a, b) => b.politics.compareTo(a.politics));
+    final envoys =
+        state.generals.values
+            .where((general) => general.factionId == state.playerFaction)
+            .toList()
+          ..sort((a, b) => b.politics.compareTo(a.politics));
     return envoys.isEmpty ? null : envoys.first;
   }
 
   /// 势力实力估值：兵力与城池数的综合，用于成算与劝降判断。
-  static int powerOf(GameState state, String factionId) =>
-      state.troopsOf(factionId) + state.cityCount(factionId) * 900;
+  static int powerOf(GameState state, String factionId) {
+    final tally = state.tallyOf(factionId);
+    return tally.troops + tally.cities * 900;
+  }
 
-  /// 成算：使者政治、双方实力差与手段难度共同决定。
+  /// 三种手段的成算，一次算齐使者与双方实力，供面板并列展示。
+  static Map<DiplomaticMove, double> oddsOf(GameState state, String targetId) {
+    final politics = envoyOf(state)?.politics ?? 60;
+    final mine = powerOf(state, state.playerFaction);
+    final theirs = max(1, powerOf(state, targetId));
+    final ratio = mine / theirs;
+    final edge = (ratio - 1).clamp(0.0, 1.0);
+    return {
+      for (final move in DiplomaticMove.values)
+        move: switch (move) {
+          DiplomaticMove.truce =>
+            (0.28 + politics / 260 + edge * 0.18).clamp(0.08, 0.9).toDouble(),
+          DiplomaticMove.marriage =>
+            (0.20 + politics / 300 + edge * 0.16).clamp(0.08, 0.9).toDouble(),
+          DiplomaticMove.vassalize =>
+            (0.06 + politics / 420 + (ratio - 1.8).clamp(0.0, 2.4) * 0.22)
+                .clamp(0.08, 0.9)
+                .toDouble(),
+        },
+    };
+  }
+
+  /// 单一手段的成算，保留给调用方单独查询。
   static double chanceOf(
     GameState state,
     String targetId,
     DiplomaticMove move,
-  ) {
-    final politics = envoyOf(state)?.politics ?? 60;
-    final mine = powerOf(state, state.playerFaction);
-    final theirs = max(1, powerOf(state, targetId));
-    final edge = (mine / theirs - 1).clamp(0.0, 1.0);
-    final chance = switch (move) {
-      DiplomaticMove.truce => 0.28 + politics / 260 + edge * 0.18,
-      DiplomaticMove.marriage => 0.20 + politics / 300 + edge * 0.16,
-      DiplomaticMove.vassalize =>
-        0.06 +
-            politics / 420 +
-            ((mine / theirs) - 1.8).clamp(0.0, 2.4) * 0.22,
-    };
-    return chance.clamp(0.08, 0.9).toDouble();
-  }
+  ) => oddsOf(state, targetId)[move]!;
 
   /// 仅余两城以内的势力才可能被劝降。
   static bool canVassalize(GameState state, String targetId) =>
       state.cityCount(targetId) <= 2;
+
+  /// 遣使前的校验，返回拒绝理由；可出使时返回 null。
+  static String? _rejectReason(
+    GameState state,
+    String targetId,
+    DiplomaticMove move,
+  ) {
+    final target = state.factions[targetId];
+    if (target == null || targetId == state.playerFaction) return '目标无效';
+    if (!target.alive || !state.hasCities(targetId)) return '该势力已亡';
+    if (move != DiplomaticMove.vassalize &&
+        state.hasPact(state.playerFaction, targetId)) {
+      return '已与${FactionDefs.nameOf(targetId)}盟约，无需再遣使';
+    }
+    if (move == DiplomaticMove.vassalize && !canVassalize(state, targetId)) {
+      return '其势力尚强，不肯归降';
+    }
+    if (state.player.gold < move.goldCost) return '金钱不足';
+    return null;
+  }
 
   static OrderResult attempt(
     GameState state,
@@ -55,30 +86,13 @@ class DiplomacyService {
     DiplomaticMove move,
     Random random,
   ) {
-    final target = state.factions[targetId];
-    if (target == null || targetId == state.playerFaction) {
-      return const OrderResult(success: false, message: '目标无效');
-    }
-    if (!target.alive || !state.hasCities(targetId)) {
-      return const OrderResult(success: false, message: '该势力已亡');
-    }
-    if (move != DiplomaticMove.vassalize &&
-        state.hasPact(state.playerFaction, targetId)) {
-      return OrderResult(
-        success: false,
-        message: '已与${FactionDefs.nameOf(targetId)}盟约，无需再遣使',
-      );
-    }
-    if (move == DiplomaticMove.vassalize && !canVassalize(state, targetId)) {
-      return const OrderResult(success: false, message: '其势力尚强，不肯归降');
-    }
-    if (state.player.gold < move.goldCost) {
-      return const OrderResult(success: false, message: '金钱不足');
-    }
+    final reason = _rejectReason(state, targetId, move);
+    if (reason != null) return OrderResult(success: false, message: reason);
     state.player.gold -= move.goldCost;
 
     final envoy = envoyOf(state);
-    final envoyName = envoy?.name ?? FactionDefs.byId(state.playerFaction).ruler;
+    final envoyName =
+        envoy?.name ?? FactionDefs.byId(state.playerFaction).ruler;
     final targetName = FactionDefs.nameOf(targetId);
     final chance = chanceOf(state, targetId, move);
     if (random.nextDouble() > chance) {

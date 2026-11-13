@@ -68,27 +68,23 @@ class HomeTopBar extends StatelessWidget {
           ],
         ),
         const Spacer(),
-        IconButton(
-          tooltip: darkMode ? '切换浅色' : '切换深色',
-          onPressed: onToggleDark,
-          icon: Icon(
-            darkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-            size: 21,
-          ),
+        _tool(
+          darkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+          darkMode ? '切换浅色' : '切换深色',
+          onToggleDark,
         ),
-        IconButton(
-          tooltip: '玩法说明',
-          onPressed: onHelp,
-          icon: const Icon(Icons.menu_book_outlined, size: 21),
-        ),
-        IconButton(
-          tooltip: '设置',
-          onPressed: onSettings,
-          icon: const Icon(Icons.settings_outlined, size: 21),
-        ),
+        _tool(Icons.menu_book_outlined, '玩法说明', onHelp),
+        _tool(Icons.settings_outlined, '设置', onSettings),
       ],
     );
   }
+
+  Widget _tool(IconData icon, String tooltip, VoidCallback onPressed) =>
+      IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon, size: 21),
+      );
 }
 
 /// 首页主视觉：地图缩略图、标题与副标题。

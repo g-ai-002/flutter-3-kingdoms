@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flutter_3_kingdoms/game/battle_preview.dart';
+import 'package:flutter_3_kingdoms/game/diplomacy.dart';
 import 'package:flutter_3_kingdoms/game/game_controller.dart';
+import 'package:flutter_3_kingdoms/models/diplomacy.dart';
 import 'package:flutter_3_kingdoms/models/game_state.dart';
 
 GameController _newGame() => GameController(factionId: 'wei', seed: 11);
@@ -10,16 +12,17 @@ void main() {
   test('势力收入、粮草收入与消耗按城池汇总', () {
     final game = _newGame().game;
     final cities = game.citiesOf('wei').toList();
+    final economy = game.economyOf('wei');
     expect(
-      game.goldIncomeOf('wei'),
+      economy.gold,
       cities.fold<int>(0, (sum, city) => sum + city.goldIncome),
     );
     expect(
-      game.foodIncomeOf('wei'),
+      economy.food,
       cities.fold<int>(0, (sum, city) => sum + city.foodIncome),
     );
     expect(
-      game.upkeepOf('wei'),
+      economy.upkeep,
       cities.fold<int>(0, (sum, city) => sum + city.foodUpkeep),
     );
     expect(game.upkeepOf('wei'), greaterThan(0));
@@ -30,8 +33,9 @@ void main() {
     for (final city in game.citiesOf('dong').toList()) {
       city.owner = 'wei';
     }
-    expect(game.goldIncomeOf('dong'), 0);
-    expect(game.foodIncomeOf('dong'), 0);
+    final economy = game.economyOf('dong');
+    expect(economy.gold, 0);
+    expect(economy.food, 0);
     expect(game.upkeepOf('dong'), 0);
   });
 
@@ -89,5 +93,67 @@ void main() {
     expect(controller.game.elapsedMonths, 1);
     expect(GameOutcome.victory.label, '一统山河');
     expect(GameOutcome.defeat.label, '霸业成空');
+  });
+
+  test('势力版图统计一次遍历同时给出城池与兵力', () {
+    final game = _newGame().game;
+    final tally = game.tallyOf('wei');
+    expect(tally.cities, game.cityCount('wei'));
+    expect(tally.troops, game.troopsOf('wei'));
+    expect(
+      tally.troops,
+      game
+          .citiesOf('wei')
+          .fold<int>(0, (sum, city) => sum + city.troops),
+    );
+    expect(game.tallyOf('none'), (cities: 0, troops: 0));
+  });
+
+  test('版图变动后同步势力存亡', () {
+    final game = _newGame().game;
+    for (final city in game.citiesOf('dong').toList()) {
+      city.owner = 'wei';
+    }
+    game.syncAlive();
+    expect(game.factions['dong']!.alive, isFalse);
+    expect(game.factions['wei']!.alive, isTrue);
+    expect(game.factions['shu']!.alive, isTrue);
+  });
+
+  test('外交成算批量计算与单次查询一致，且强弱有序', () {
+    final game = _newGame().game;
+    final odds = DiplomacyService.oddsOf(game, 'yuan');
+    for (final move in DiplomaticMove.values) {
+      expect(odds[move], DiplomacyService.chanceOf(game, 'yuan', move));
+      expect(odds[move], inInclusiveRange(0.08, 0.9));
+    }
+    expect(
+      odds[DiplomaticMove.truce]!,
+      greaterThan(odds[DiplomaticMove.vassalize]!),
+    );
+  });
+
+  test('出征快照：无将时偏将带队，守方取城防与兵种', () {
+    final controller = _newGame();
+    final source = controller.game.cities['puyang']!;
+    final target = controller.game.cities['pingyuan']!;
+    final setup = controller.buildSetup(
+      source: source,
+      target: target,
+      attacker: null,
+      troops: 1500,
+      attackerFaction: 'wei',
+    );
+    expect(setup.attacker.generalName, '偏将');
+    expect(setup.attacker.defense, 0);
+    expect(setup.attacker.troopType, source.troopType);
+    expect(setup.attacker.terrain, target.terrain);
+    expect(setup.defender.cityName, target.name);
+    expect(setup.defender.defense, target.defense);
+    expect(setup.defender.troopType, target.troopType);
+    expect(
+      setup.defender.generalName,
+      controller.game.defenderOf(target)?.name,
+    );
   });
 }
