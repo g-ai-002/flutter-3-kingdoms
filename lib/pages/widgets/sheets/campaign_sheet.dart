@@ -66,7 +66,7 @@ class _CampaignSheetState extends State<_CampaignSheet> {
   void initState() {
     super.initState();
     _targets = widget.controller.game.enemyNeighbors(widget.source);
-    _generals = widget.controller.attackLeaders(widget.source);
+    _generals = widget.controller.game.attackLeaders(widget.source);
     _target = _preferredTarget();
     _general = _generals.isEmpty ? null : _generals.first;
     _troops = (widget.source.troops * 0.7).clamp(500, _maxTroops).toDouble();

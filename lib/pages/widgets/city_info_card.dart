@@ -26,7 +26,7 @@ class CityInfoCard extends StatelessWidget {
 
   Widget _buildCompact(BuildContext context) {
     final theme = Theme.of(context);
-    final governor = controller.governorOf(city);
+    final governor = controller.game.governorOf(city);
     return Wrap(
       spacing: 6,
       runSpacing: 3,
@@ -74,7 +74,7 @@ class CityInfoCard extends StatelessWidget {
   Widget _buildDetailed(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final governor = controller.governorOf(city);
+    final governor = controller.game.governorOf(city);
     final faction = FactionDefs.byId(city.owner);
     final enemies = controller.game.enemyNeighbors(city);
     final stats = <(String, int, Color)>[

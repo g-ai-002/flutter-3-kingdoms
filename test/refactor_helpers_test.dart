@@ -41,7 +41,7 @@ void main() {
     final target = controller.game.cities['pingyuan']!;
     final preview = controller.previewAttack(source, target);
 
-    expect(preview.defender?.id, controller.defenderOf(target)?.id);
+    expect(preview.defender?.id, controller.game.defenderOf(target)?.id);
     expect(preview.ratio, greaterThan(0));
     expect(preview.odds, BattleOdds.of(preview.ratio));
     expect(BattleOdds.of(2.0), BattleOdds.favorable);
@@ -52,7 +52,7 @@ void main() {
   test('出征主将按攻城战力排序，空城返回空列表', () {
     final controller = _newGame();
     final city = controller.game.cities['puyang']!;
-    final leaders = controller.attackLeaders(city);
+    final leaders = controller.game.attackLeaders(city);
     expect(leaders, isNotEmpty);
     for (var i = 1; i < leaders.length; i++) {
       expect(
@@ -63,8 +63,8 @@ void main() {
     final empty = controller.game.cities['xuchang']!;
     empty.generalIds.clear();
     empty.governor = null;
-    expect(controller.attackLeaders(empty), isEmpty);
-    expect(controller.defenderOf(empty), isNull);
+    expect(controller.game.attackLeaders(empty), isEmpty);
+    expect(controller.game.defenderOf(empty), isNull);
   });
 
   test('结局标签与征战月数', () {

@@ -12,6 +12,7 @@ import '../models/general.dart';
 import 'battle_preview.dart';
 import 'data/scenario.dart';
 import 'engine/battle_engine.dart';
+import 'events/month_events.dart';
 import 'order_result.dart';
 import 'orders.dart';
 
@@ -83,11 +84,6 @@ class GameController extends ChangeNotifier {
   }
 
   /// 本方城池可选的内政指令，已执行或资源不足时由界面置灰。
-  List<CityAction> availableActions(City city) {
-    if (city.owner != state.playerFaction) return const [];
-    return CityAction.values;
-  }
-
   OrderResult issueOrder(CityAction action) {
     final city = selectedCity;
     if (city == null) {
@@ -101,36 +97,12 @@ class GameController extends ChangeNotifier {
     return result;
   }
 
-  List<General> freeGeneralsIn(City city) => city.generalIds
-      .map((id) => state.generals[id]!)
-      .where((general) => general.free)
-      .toList();
-
-  List<General> residentsOf(City city) => city.generalIds
-      .map((id) => state.generals[id]!)
-      .where((general) => general.factionId == city.owner && !general.free)
-      .toList();
-
-  /// 出征时可选的将领，按攻城主将的战力系数从高到低。
-  List<General> attackLeaders(City city) =>
-      residentsOf(city)..sort((a, b) => b.attackFactor.compareTo(a.attackFactor));
-
-  General? governorOf(City city) =>
-      city.governor == null ? null : state.generals[city.governor];
-
-  /// 守城主将：优先太守，其次守城战力最高的在城武将。
-  General? defenderOf(City city) {
-    final governor = governorOf(city);
-    if (governor != null && governor.factionId == city.owner) return governor;
-    final residents = residentsOf(city);
-    if (residents.isEmpty) return null;
-    residents.sort((a, b) => b.defenseFactor.compareTo(a.defenseFactor));
-    return residents.first;
-  }
-
   /// 出征前的纸面胜算，与真正开战时使用同一套守将与战力口径。
-  BattlePreview previewAttack(City source, City target) =>
-      BattlePreview(source: source, target: target, defender: defenderOf(target));
+  BattlePreview previewAttack(City source, City target) => BattlePreview(
+    source: source,
+    target: target,
+    defender: state.defenderOf(target),
+  );
 
   OrderResult recruitGeneral(String generalId) {
     final city = selectedCity;
@@ -263,7 +235,7 @@ class GameController extends ChangeNotifier {
     if (finished) return;
     _runAiTurn();
     _settleMonth();
-    _rollEvents();
+    MonthEvents.roll(state, _random);
     _advanceMonth();
     _checkVictory();
     _selectedCityId = null;
@@ -278,7 +250,7 @@ class GameController extends ChangeNotifier {
     required int troops,
     required String attackerFaction,
   }) {
-    final defender = defenderOf(target);
+    final defender = state.defenderOf(target);
     final attackerMorale =
         (88 + (attacker?.lead ?? 50) / 8).clamp(70, 120).round();
     final defenderMorale = (96 + target.defense / 10).clamp(80, 125).round();
@@ -336,7 +308,7 @@ class GameController extends ChangeNotifier {
     final factionName = FactionDefs.nameOf(attackerFaction);
     if (result.attackerWon) {
       final defeatedFaction = target.owner;
-      final defenders = residentsOf(target);
+      final defenders = state.residentsOf(target);
       target.owner = attackerFaction;
       target.troops = result.attackerRemaining;
       target.acted = true;
@@ -347,9 +319,10 @@ class GameController extends ChangeNotifier {
         target.generalIds.add(general.id);
         target.governor = general.id;
         if (source.governor == general.id) {
-          source.governor = residentsOf(source).isEmpty
+          source.governor = state.residentsOf(source).isEmpty
               ? null
-              : (residentsOf(source)..sort((a, b) => b.lead.compareTo(a.lead)))
+              : (state.residentsOf(source)
+                        ..sort((a, b) => b.lead.compareTo(a.lead)))
                     .first
                     .id;
         }
@@ -469,7 +442,7 @@ class GameController extends ChangeNotifier {
     if (faction.gold < 600) return;
     for (final city in state.citiesOf(factionId)) {
       if (city.acted) continue;
-      final candidates = freeGeneralsIn(city);
+      final candidates = state.freeGeneralsIn(city);
       if (candidates.isEmpty) continue;
       if (_random.nextDouble() > 0.22) continue;
       candidates.sort((a, b) => b.rating.compareTo(a.rating));
@@ -502,7 +475,7 @@ class GameController extends ChangeNotifier {
         }
       }
       if (bestSource == null || bestTarget == null) return;
-      final leaders = attackLeaders(bestSource);
+      final leaders = state.attackLeaders(bestSource);
       final general = leaders.isEmpty ? null : leaders.first;
       final committed = max(500, (bestSource.troops * 0.72).round());
       if (committed > bestSource.troops - 300) return;
@@ -566,90 +539,6 @@ class GameController extends ChangeNotifier {
       ChronicleKind.event,
     );
   }
-
-  void _rollEvents() {
-    for (final city in state.citiesOf(state.playerFaction).toList()) {
-      if (_random.nextDouble() > 0.2) continue;
-      switch (_random.nextInt(7)) {
-        case 0:
-          _eventHarvest(city);
-        case 1:
-          _eventLocusts(city);
-        case 2:
-          _eventPlague(city);
-        case 3:
-          _eventRefugees(city);
-        case 4:
-          _eventRevolt(city);
-        case 5:
-          _eventCaravan(city);
-        case 6:
-          _eventTalent(city);
-      }
-    }
-  }
-
-  void _eventHarvest(City city) {
-    final gain = city.foodIncome;
-    state.player.food += gain;
-    city.agriculture = min(100, city.agriculture + 2);
-    _eventLog(city, '${city.name} 风调雨顺，仓廪充实，得粮 $gain 石。');
-  }
-
-  void _eventLocusts(City city) {
-    final loss = min(state.player.food, city.foodIncome);
-    state.player.food -= loss;
-    city.order = max(0, city.order - 3);
-    _eventLog(city, '${city.name} 蝗灾肆虐，损失粮草 $loss 石。');
-  }
-
-  void _eventPlague(City city) {
-    final loss = max(20, (city.troops * 0.07).round());
-    city.troops = max(0, city.troops - loss);
-    _eventLog(city, '${city.name} 疫病流行，折损士卒 $loss 人。');
-  }
-
-  void _eventRefugees(City city) {
-    city.population = min(160, city.population + 2);
-    city.order = max(0, city.order - 2);
-    _eventLog(city, '${city.name} 流民来投，人口渐增。');
-  }
-
-  void _eventRevolt(City city) {
-    city.order = max(0, city.order - 8);
-    final loss = max(15, (city.troops * 0.04).round());
-    city.troops = max(0, city.troops - loss);
-    _eventLog(city, '${city.name} 民变四起，治安下降，折兵 $loss。');
-  }
-
-  void _eventCaravan(City city) {
-    final gain = 180 + _random.nextInt(160);
-    state.player.gold += gain;
-    _eventLog(city, '${city.name} 商队云集，得金 $gain。');
-  }
-
-  /// 名将来投；城中无人可投时改为开垦荒田。
-  void _eventTalent(City city) {
-    final candidates = freeGeneralsIn(city);
-    if (candidates.isEmpty) {
-      const gain = 120;
-      state.player.food += gain;
-      _eventLog(city, '${city.name} 垦得荒田，得粮 $gain 石。');
-      return;
-    }
-    candidates.sort((a, b) => b.rating.compareTo(a.rating));
-    final general = candidates.first;
-    general.factionId = city.owner;
-    general.loyalty = 70;
-    city.governor ??= general.id;
-    _eventLog(city, '${city.name}：${general.name} 慕名来投，愿为本方效力。');
-  }
-
-  void _eventLog(City city, String text) => state.addChronicle(
-    text,
-    ChronicleKind.event,
-    factionId: city.owner,
-  );
 
   void _advanceMonth() {
     state.month++;

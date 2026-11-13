@@ -20,8 +20,8 @@ Future<void> showAppointmentSheet(
       builder: (context, setSheetState) {
         final theme = Theme.of(context);
         final colors = theme.colorScheme;
-        final residents = controller.residentsOf(city);
-        final free = controller.freeGeneralsIn(city);
+        final residents = controller.game.residentsOf(city);
+        final free = controller.game.freeGeneralsIn(city);
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),

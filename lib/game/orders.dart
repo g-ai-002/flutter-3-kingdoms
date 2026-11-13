@@ -46,7 +46,7 @@ class OrderService {
     if (faction.food < action.foodCost) {
       return const OrderResult(success: false, message: '粮草不足');
     }
-    final governor = _governorOf(state, city);
+    final governor = state.governorOf(city);
     final politics = governor?.politics ?? 40;
     final lead = governor?.lead ?? 40;
     var bonus = governor != null && governor.trait == GeneralTrait.statesman
@@ -132,7 +132,7 @@ class OrderService {
     if (faction.gold < recruitGeneralCost) {
       return const OrderResult(success: false, message: '金钱不足');
     }
-    final governor = _governorOf(state, city);
+    final governor = state.governorOf(city);
     final politics = governor?.politics ?? 40;
     faction.gold -= recruitGeneralCost;
     city.acted = true;
@@ -171,9 +171,4 @@ class OrderService {
     city.governor = generalId;
   }
 
-  static General? _governorOf(GameState state, City city) {
-    final id = city.governor;
-    if (id == null) return null;
-    return state.generals[id];
-  }
 }

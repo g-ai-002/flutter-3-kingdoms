@@ -53,9 +53,34 @@ class GameState {
   Iterable<City> citiesOf(String factionId) =>
       cities.values.where((city) => city.owner == factionId);
 
-  Iterable<General> generalsOf(String factionId) => generals.values.where(
-    (general) => general.factionId == factionId && !general.free,
-  );
+  /// 城中的本方武将，不含在野名士。
+  List<General> residentsOf(City city) => city.generalIds
+      .map((id) => generals[id]!)
+      .where((general) => general.factionId == city.owner && !general.free)
+      .toList();
+
+  /// 城中的在野武将，可花费金钱登用。
+  List<General> freeGeneralsIn(City city) => city.generalIds
+      .map((id) => generals[id]!)
+      .where((general) => general.free)
+      .toList();
+
+  /// 可出任攻城主将的武将，按攻城战力从高到低。
+  List<General> attackLeaders(City city) =>
+      residentsOf(city)..sort((a, b) => b.attackFactor.compareTo(a.attackFactor));
+
+  General? governorOf(City city) =>
+      city.governor == null ? null : generals[city.governor];
+
+  /// 守城主将：优先太守，其次守城战力最高的在城武将。
+  General? defenderOf(City city) {
+    final governor = governorOf(city);
+    if (governor != null && governor.factionId == city.owner) return governor;
+    final residents = residentsOf(city);
+    if (residents.isEmpty) return null;
+    residents.sort((a, b) => b.defenseFactor.compareTo(a.defenseFactor));
+    return residents.first;
+  }
 
   int cityCount(String factionId) {
     var count = 0;

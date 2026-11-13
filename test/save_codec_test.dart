@@ -68,7 +68,7 @@ void main() {
       final controller = GameController(factionId: 'wei', seed: 8);
       final luoyang = controller.game.cities['luoyang']!;
       expect(
-        controller.freeGeneralsIn(luoyang).map((general) => general.id),
+        controller.game.freeGeneralsIn(luoyang).map((general) => general.id),
         contains('zhangliao'),
       );
     });
