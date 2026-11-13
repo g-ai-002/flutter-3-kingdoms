@@ -32,10 +32,13 @@ class MapPreview extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
-          child: CustomPaint(
-            painter: _MapPreviewPainter(
-              palette: MapPalette.of(brightness),
-              brightness: brightness,
+          // 首页滚动时不让整幅缩略图跟着重绘，底图只在尺寸或主题变化时再画。
+          child: RepaintBoundary(
+            child: CustomPaint(
+              painter: _MapPreviewPainter(
+                palette: MapPalette.of(brightness),
+                brightness: brightness,
+              ),
             ),
           ),
         ),

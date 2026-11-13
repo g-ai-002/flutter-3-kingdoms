@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -71,47 +73,51 @@ class _GamePageState extends State<GamePage> {
 
   Future<void> _showOutcome() async {
     final game = controller.game;
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(game.outcome?.label ?? '征战未决'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              game.isVictory
-                  ? '${formatYearMonth(game.year, game.month)}，'
-                        '${FactionDefs.byId(game.playerFaction).ruler} 扫平群雄，天下归心。'
-                  : '${formatYearMonth(game.year, game.month)}，'
-                        '${FactionDefs.byId(game.playerFaction).ruler} 失尽城池，霸业中道而止。',
-              style: const TextStyle(height: 1.6),
+    await _withMapPaused(
+      () => showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(game.outcome?.label ?? '征战未决'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                game.isVictory
+                    ? '${formatYearMonth(game.year, game.month)}，'
+                          '${FactionDefs.byId(game.playerFaction).ruler} 扫平群雄，天下归心。'
+                    : '${formatYearMonth(game.year, game.month)}，'
+                          '${FactionDefs.byId(game.playerFaction).ruler} 失尽城池，霸业中道而止。',
+                style: const TextStyle(height: 1.6),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '据城 ${game.cityCount(game.playerFaction)} / ${game.totalCities}',
+              ),
+              Text('带甲 ${game.troopsOf(game.playerFaction)}'),
+              Text('征战 ${game.elapsedMonths} 个月'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                unawaited(
+                  _withMapPaused(() => showChronicleSheet(context, controller)),
+                );
+              },
+              child: const Text('查看战报'),
             ),
-            const SizedBox(height: 12),
-            Text(
-              '据城 ${game.cityCount(game.playerFaction)} / ${game.totalCities}',
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                Navigator.of(context).pop();
+              },
+              child: const Text('返回首页'),
             ),
-            Text('带甲 ${game.troopsOf(game.playerFaction)}'),
-            Text('征战 ${game.elapsedMonths} 个月'),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              showChronicleSheet(context, controller);
-            },
-            child: const Text('查看战报'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              Navigator.of(context).pop();
-            },
-            child: const Text('返回首页'),
-          ),
-        ],
       ),
     );
   }
@@ -123,46 +129,62 @@ class _GamePageState extends State<GamePage> {
       ..showSnackBar(SnackBar(content: Text(text)));
   }
 
+  /// 全屏页与弹层期间暂停地图渲染，关闭后按前后台状态恢复。
+  Future<T> _withMapPaused<T>(Future<T> Function() action) async {
+    _game.pauseForCover();
+    try {
+      return await action();
+    } finally {
+      _game.resumeAfterCover();
+    }
+  }
+
   Future<void> _openInternalAffairs(City city) async {
     if (controller.finished) return;
-    final action = await showInternalAffairsSheet(context, controller, city);
+    final action = await _withMapPaused(
+      () => showInternalAffairsSheet(context, controller, city),
+    );
     if (action == null || !mounted) return;
     final result = controller.issueOrder(action);
     SoundService.play(result.success ? GameSound.order : GameSound.tap);
     _message(result.message);
   }
 
-  Future<void> _openCampaign(City source, {City? preferred}) async {
-    if (controller.finished) return;
-    final request = await showCampaignSheet(
-      context,
-      controller,
-      source,
-      preferredTarget: preferred,
-    );
-    if (request == null || !mounted) return;
-    final prepared = controller.prepareBattle(
-      source: source,
-      target: request.target,
-      general: request.general,
-      troops: request.troops,
-    );
-    final setup = prepared.setup;
-    if (setup == null) {
-      _message(prepared.error ?? '无法出征');
-      return;
-    }
-    final result = await Navigator.of(context).push<BattleResult?>(
-      MaterialPageRoute<BattleResult?>(
-        builder: (_) => BattlePage(setup: setup),
-      ),
-    );
-    controller.finishPlayerBattle(result);
+  Future<void> _openCampaign(City source, {City? preferred}) {
+    if (controller.finished) return Future<void>.value();
+    return _withMapPaused(() async {
+      final request = await showCampaignSheet(
+        context,
+        controller,
+        source,
+        preferredTarget: preferred,
+      );
+      if (request == null || !mounted) return;
+      final prepared = controller.prepareBattle(
+        source: source,
+        target: request.target,
+        general: request.general,
+        troops: request.troops,
+      );
+      final setup = prepared.setup;
+      if (setup == null) {
+        _message(prepared.error ?? '无法出征');
+        return;
+      }
+      final result = await Navigator.of(context).push<BattleResult?>(
+        MaterialPageRoute<BattleResult?>(
+          builder: (_) => BattlePage(setup: setup),
+        ),
+      );
+      controller.finishPlayerBattle(result);
+    });
   }
 
   void _openAppointment(City city) {
     if (controller.finished) return;
-    showAppointmentSheet(context, controller, city);
+    unawaited(
+      _withMapPaused(() => showAppointmentSheet(context, controller, city)),
+    );
   }
 
   void _endTurn() {
@@ -177,7 +199,13 @@ class _GamePageState extends State<GamePage> {
   }
 
   void _push(Widget page) {
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+    unawaited(
+      _withMapPaused(
+        () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => page),
+        ),
+      ),
+    );
   }
 
   /// 敌方城池可进攻时，选一座接壤且未行动的本方城池作为出兵地。
@@ -201,26 +229,37 @@ class _GamePageState extends State<GamePage> {
     return MapDisplayMode(
       child: Scaffold(
         body: SafeArea(
-          child: AnimatedBuilder(
-            animation: controller,
-            builder: (context, map) => MapHud(
-              map: map!,
-              topStart: _FactionHudCard(controller: controller),
-              topEnd: _buildTools(),
-              info: _buildInfo(),
-              controls: _GameControls(
+          child: MapHud(
+            map: _buildMap(),
+            topStart: AnimatedBuilder(
+              animation: controller,
+              builder: (context, _) => _FactionHudCard(controller: controller),
+            ),
+            topEnd: _buildTools(),
+            info: AnimatedBuilder(
+              animation: controller,
+              builder: (context, _) => _buildInfo(),
+            ),
+            controls: AnimatedBuilder(
+              animation: controller,
+              builder: (context, _) => _GameControls(
                 controller: controller,
                 onInternal: _openInternalAffairs,
                 onCampaign: (source, {preferred}) =>
                     _openCampaign(source, preferred: preferred),
                 onAppoint: _openAppointment,
                 onEndTurn: _endTurn,
-                onFactions: () => showFactionOverviewSheet(context, controller),
-                onChronicle: () => showChronicleSheet(context, controller),
+                onFactions: () => unawaited(
+                  _withMapPaused(
+                    () => showFactionOverviewSheet(context, controller),
+                  ),
+                ),
+                onChronicle: () => unawaited(
+                  _withMapPaused(() => showChronicleSheet(context, controller)),
+                ),
                 onAttackSource: _attackSource,
               ),
             ),
-            child: _buildMap(),
           ),
         ),
       ),

@@ -124,10 +124,13 @@ class _BattlePageState extends State<BattlePage> {
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: CustomPaint(
-                    painter: _BattlefieldPainter(
-                      attackerColor: FactionDefs.colorOf(attacker.factionId),
-                      defenderColor: FactionDefs.colorOf(defender.factionId),
+                  // 战场底图只跟双方势力色有关，独立成层后回合切换不必重绘光带。
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: _BattlefieldPainter(
+                        attackerColor: FactionDefs.colorOf(attacker.factionId),
+                        defenderColor: FactionDefs.colorOf(defender.factionId),
+                      ),
                     ),
                   ),
                 ),

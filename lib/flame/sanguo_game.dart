@@ -6,7 +6,7 @@ import '../utils/logic_rate.dart';
 import 'map_component.dart';
 
 /// Flame 游戏入口：目前只有战略地图组件，后续可扩展行军动画与战火特效。
-class SanguoGame extends FlameGame {
+class SanguoGame extends FlameGame with WidgetsBindingObserver {
   SanguoGame({
     required this.controller,
     required Brightness brightness,
@@ -26,15 +26,32 @@ class SanguoGame extends FlameGame {
   final ValueNotifier<Brightness> _brightness;
   MapComponent? _map;
   double _idle = 0;
+  bool _appActive = true;
+  int _coverDepth = 0;
 
   Brightness get brightness => _brightness.value;
   set brightness(Brightness value) => _brightness.value = value;
+
+  /// 对局页被全屏页或弹层覆盖时暂停渲染，避免地图在后台空转。
+  void pauseForCover() {
+    _coverDepth++;
+    pauseEngine();
+  }
+
+  /// 覆盖层关闭后恢复；嵌套弹层按层数配对。
+  void resumeAfterCover() {
+    if (_coverDepth > 0) _coverDepth--;
+    _wake();
+  }
+
+  bool get _suspended => !_appActive || _coverDepth > 0;
 
   @override
   Color backgroundColor() => Colors.transparent;
 
   @override
   Future<void> onLoad() async {
+    WidgetsBinding.instance.addObserver(this);
     final map = MapComponent(
       controller: controller,
       brightness: _brightness,
@@ -62,15 +79,29 @@ class SanguoGame extends FlameGame {
     pauseEngine();
   }
 
+  /// 切到后台立即停掉渲染循环，回到前台再按需恢复。
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final active = state == AppLifecycleState.resumed;
+    _appActive = active;
+    if (active) {
+      _wake();
+    } else {
+      pauseEngine();
+    }
+  }
+
   void _wake() {
     _idle = 0;
-    if (paused) resumeEngine();
+    if (!_suspended && paused) resumeEngine();
   }
 
   @override
   void onDispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _brightness.removeListener(_wake);
     changes?.removeListener(_wake);
+    _brightness.dispose();
     super.onDispose();
   }
 
