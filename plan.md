@@ -42,7 +42,7 @@
 
 ### v0.1.0 (MINOR) — 2026-11-14
 
-- **状态**: 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.1.0)）
+- **状态**: Android / Web 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.1.0)）；Windows 产物待 `windows-flutter` runner 恢复后补发 ⚠️
 - **目标**: 交付首个可玩版本，打通「选势力 → 经营 → 出征 → 一统天下」的完整回合制循环，
   并复用 `flutter-chinese-chess` 的工程骨架与构建配置。
 - **任务**:
@@ -57,3 +57,5 @@
   - [x] 运行时合成七种音效与古筝循环背景音乐，逻辑刷新率 30 / 60 / 120Hz
   - [x] 按天落盘日志、深色模式、设置页与玩法说明
   - [x] Android / Windows / Web 构建流水线与 Release 发布对齐示例工程
+  - [x] Android APK 与 Web 产物已发布，Web 版本部署到 `tea-pages/v0.1.0`
+  - [ ] Windows 产物：发布时 Gitea 的两台 `windows-flutter` runner 均处于离线状态，待恢复后手动运行 `build` 工作流选定 `v0.1.0` 补发

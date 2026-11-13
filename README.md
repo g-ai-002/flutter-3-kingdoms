@@ -29,8 +29,10 @@ v0.1.0（首个版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flut
 | 平台 | 产物 |
 | --- | --- |
 | Android (arm64) | `flutter-3-kingdoms-0.1.0-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-3-kingdoms-0.1.0-windows-x86_64.zip` |
+| Windows (x64, Win10+) | 待补发：构建时 Gitea `windows-flutter` runner 离线，流水线配置已就绪 |
 | Web | `flutter-3-kingdoms-0.1.0-web.zip`（解压后起静态服务器） |
+
+在线试玩：[v0.1.0](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/src/branch/tea-pages/v0.1.0/) · [debug 预览](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/src/branch/tea-pages/debug/)
 
 ## 开发
 
