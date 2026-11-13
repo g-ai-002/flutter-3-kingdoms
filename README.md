@@ -17,6 +17,7 @@
 - 🎯 **三档难度**：悠闲 / 争雄 / 霸业，影响 AI 收入与出兵阈值
 - 🎵 **运行时音频**：七种战鼓号角音效与古筝五声音阶循环，可分别关闭；应用进入后台自动暂停
 - ⚙️ **逻辑刷新率**：30 / 60 / 120Hz 三档可选（默认 60Hz），地图动画按固定步长推进
+- ⚡ **渲染与启动优化**：地图底图与城池合并为静态图层缓存，选中只重绘脉冲；首页与战场底图独立分层；音效与背景音乐在后台 isolate 合成，首帧后再错峰启动
 - 🖥️ **自适应布局**：地图居中，信息卡悬浮在地图上方或左右两侧，按钮统一在下方；窄屏手机自动横屏全屏
 - 🌓 **深色模式、简体中文**：Windows 优先 Microsoft YaHei UI，Web 使用 soup_fonts 思源黑体
 - 🧾 **日志**：按天写入用户目录，保留 7 天，单个文件超 5 MB 自动轮转，设置页可查看与复制
@@ -24,17 +25,17 @@
 
 ## 下载
 
-v0.1.1（重构优化）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.1.1)
+v0.1.2（性能优化）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.1.2)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64) | `flutter-3-kingdoms-0.1.1-android-aarch64.apk` |
+| Android (arm64) | `flutter-3-kingdoms-0.1.2-android-aarch64.apk` |
 | Windows (x64, Win10+) | 待补发：构建时 Gitea `windows-flutter` runner 离线，流水线配置已就绪 |
-| Web | `flutter-3-kingdoms-0.1.1-web.zip`（解压后起静态服务器） |
+| Web | `flutter-3-kingdoms-0.1.2-web.zip`（解压后起静态服务器） |
 
-在线试玩：[v0.1.1](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/src/branch/tea-pages/v0.1.1/) · [debug 预览](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/src/branch/tea-pages/debug/)
+在线试玩：[v0.1.2](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/src/branch/tea-pages/v0.1.2/) · [debug 预览](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/src/branch/tea-pages/debug/)
 
-上一版本 v0.1.0：[Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.1.0)
+上一版本 v0.1.1：[Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.1.1)
 
 ## 开发
 
@@ -70,5 +71,6 @@ lib/
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.1.2 | 性能优化：地图静态图层缓存、HUD 局部重建、音频后台合成与启动错峰、前后台停帧 |
 | v0.1.1 | 重构优化：结算与出征链路收敛、面板拆分、界面去重与死代码清理，玩法数值不变 |
 | v0.1.0 | 首个可玩版本：五方势力、二十八城、内政六令、人事登用、回合制攻城战、AI 争雄与三端发布 |
