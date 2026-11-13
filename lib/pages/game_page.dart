@@ -10,6 +10,7 @@ import '../models/battle.dart';
 import '../models/city.dart';
 import '../models/faction.dart';
 import '../providers/settings_provider.dart';
+import '../services/save_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
@@ -31,7 +32,7 @@ class GamePage extends StatefulWidget {
   State<GamePage> createState() => _GamePageState();
 }
 
-class _GamePageState extends State<GamePage> {
+class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   late final SanguoGame _game;
   bool _resultShown = false;
 
@@ -40,6 +41,7 @@ class _GamePageState extends State<GamePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _game = SanguoGame(
       controller: controller,
       brightness: Brightness.light,
@@ -56,15 +58,35 @@ class _GamePageState extends State<GamePage> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      unawaited(_autosave());
+    }
+  }
+
+  @override
   void dispose() {
     controller.removeListener(_onControllerChanged);
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(_autosave());
     super.dispose();
+  }
+
+  /// 自动存档：结束本月、战斗结束与退到后台时写入；胜负已分则清除。
+  Future<void> _autosave() async {
+    if (controller.finished) {
+      await SaveService.delete(SaveService.autoKey);
+      return;
+    }
+    await SaveService.writeState(SaveService.autoKey, controller.game);
   }
 
   void _onControllerChanged() {
     if (!mounted) return;
     if (controller.finished && !_resultShown) {
       _resultShown = true;
+      unawaited(SaveService.delete(SaveService.autoKey));
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _showOutcome();
       });
@@ -177,6 +199,7 @@ class _GamePageState extends State<GamePage> {
         ),
       );
       controller.finishPlayerBattle(result);
+      unawaited(_autosave());
     });
   }
 
@@ -190,6 +213,7 @@ class _GamePageState extends State<GamePage> {
   void _endTurn() {
     if (controller.finished) return;
     controller.endTurn();
+    unawaited(_autosave());
     SoundService.play(GameSound.turn);
     final player = controller.game.player;
     _message(
@@ -336,6 +360,13 @@ class _GamePageState extends State<GamePage> {
       runSpacing: 0,
       children: [
         _tool(
+          Icons.save_outlined,
+          '存档',
+          () => unawaited(
+            _withMapPaused(() => showSaveSheet(context, controller)),
+          ),
+        ),
+        _tool(
           Icons.menu_book_outlined,
           '玩法说明',
           () => _push(const HelpPage()),
@@ -346,7 +377,7 @@ class _GamePageState extends State<GamePage> {
   }
 
   Widget _tool(IconData icon, String tooltip, VoidCallback onTap) {
-    // 顶栏只放说明与设置，势力 / 战报已由底部操作条承担。
+    // 顶栏只放存档、说明与设置，势力 / 战报已由底部操作条承担。
     return IconButton(
       tooltip: tooltip,
       onPressed: onTap,

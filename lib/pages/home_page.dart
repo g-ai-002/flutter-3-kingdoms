@@ -3,9 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../game/data/scenario.dart';
 import '../game/game_controller.dart';
+import '../game/save_codec.dart';
 import '../models/difficulty.dart';
 import '../models/faction.dart';
+import '../models/game_state.dart';
 import '../providers/settings_provider.dart';
+import '../services/save_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/constants.dart';
@@ -13,6 +16,7 @@ import 'game_page.dart';
 import 'help_page.dart';
 import 'settings_page.dart';
 import 'widgets/common.dart';
+import 'widgets/game_sheets.dart';
 import 'widgets/map_preview.dart';
 
 class HomePage extends StatefulWidget {
@@ -24,6 +28,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late String _factionId;
+  SaveSummary? _autoSave;
 
   @override
   void initState() {
@@ -32,6 +37,12 @@ class _HomePageState extends State<HomePage> {
     _factionId = FactionDefs.isKnown(settings.playerFactionId)
         ? settings.playerFactionId
         : FactionDefs.all.first.id;
+    _refreshAutoSave();
+  }
+
+  Future<void> _refreshAutoSave() async {
+    final summary = await SaveService.autoSummary();
+    if (mounted) setState(() => _autoSave = summary);
   }
 
   Future<void> _start() async {
@@ -44,12 +55,53 @@ class _HomePageState extends State<HomePage> {
       difficulty: settings.difficulty,
       seed: DateTime.now().microsecondsSinceEpoch,
     );
+    await SaveService.writeState(SaveService.autoKey, controller.game);
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => GamePage(controller: controller),
       ),
     );
     controller.dispose();
+    await _refreshAutoSave();
+  }
+
+  Future<void> _continueGame() async {
+    final summary = _autoSave;
+    if (summary == null) return;
+    final state = await SaveService.loadState(SaveService.autoKey);
+    if (!mounted) return;
+    if (state == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('自动存档已失效')));
+      await _refreshAutoSave();
+      return;
+    }
+    await _play(state);
+  }
+
+  Future<void> _openLoadSheet() async {
+    final state = await showLoadSheet(context);
+    if (state == null || !mounted) return;
+    await _play(state);
+  }
+
+  Future<void> _play(GameState state) async {
+    SoundService.tap();
+    await SaveService.writeState(SaveService.autoKey, state);
+    if (!mounted) return;
+    final controller = GameController.fromState(
+      state,
+      seed: DateTime.now().microsecondsSinceEpoch,
+    );
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GamePage(controller: controller),
+      ),
+    );
+    controller.dispose();
+    await _refreshAutoSave();
   }
 
   void _open(Widget page) {
@@ -144,9 +196,70 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildFactionPanel(ColorScheme colors) {
     final theme = Theme.of(context);
+    final auto = _autoSave;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (auto != null)
+          Material(
+            color: colors.primaryContainer.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              onTap: _continueGame,
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(12, 9, 8, 9),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFC8A15A)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.history_edu_outlined,
+                      size: 20,
+                      color: colors.primary,
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '继续征战',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            '自动存档 · ${auto.label}',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: '所有存档',
+                      onPressed: _openLoadSheet,
+                      icon: const Icon(Icons.folder_open_outlined, size: 20),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _openLoadSheet,
+              icon: const Icon(Icons.folder_open_outlined, size: 18),
+              label: const Text('读取存档'),
+            ),
+          ),
+        const SizedBox(height: 10),
         Row(
           children: [
             const TitleOrnament(width: 20),

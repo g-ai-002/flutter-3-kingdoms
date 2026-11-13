@@ -42,6 +42,9 @@ class GameController extends ChangeNotifier {
          difficulty: difficulty,
        );
 
+  /// 从存档恢复：局面已由 SaveCodec 还原，随机数用新种子重开。
+  GameController.fromState(this.state, {int? seed}) : _random = Random(seed);
+
   final Random _random;
   final GameState state;
 
@@ -296,6 +299,8 @@ class GameController extends ChangeNotifier {
         terrain: target.terrain,
         attacking: true,
         trait: attacker?.trait ?? GeneralTrait.balanced,
+        skill: attacker?.skill ?? GeneralSkill.none,
+        troopType: source.troopType,
       ),
       defender: BattleSide(
         factionId: target.owner,
@@ -313,6 +318,8 @@ class GameController extends ChangeNotifier {
         terrain: target.terrain,
         attacking: false,
         trait: defender?.trait ?? GeneralTrait.commander,
+        skill: defender?.skill ?? GeneralSkill.none,
+        troopType: target.troopType,
       ),
     );
   }
