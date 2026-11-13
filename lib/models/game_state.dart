@@ -1,3 +1,4 @@
+import '../utils/constants.dart';
 import 'chronicle.dart';
 import 'city.dart';
 import 'difficulty.dart';
@@ -5,7 +6,14 @@ import 'faction.dart';
 import 'general.dart';
 
 /// 一局争霸的最终结局。
-enum GameOutcome { victory, defeat }
+enum GameOutcome {
+  victory('一统山河'),
+  defeat('霸业成空');
+
+  const GameOutcome(this.label);
+
+  final String label;
+}
 
 /// 整局游戏状态：年月、五方钱粮、城池、武将与本方势力。
 class GameState {
@@ -39,7 +47,8 @@ class GameState {
 
   bool get isVictory => outcome == GameOutcome.victory;
 
-  Iterable<City> get allCities => cities.values;
+  /// 开局至今经过的月份，含当前月。
+  int get elapsedMonths => (year - AppConstants.startYear) * 12 + month - 1;
 
   Iterable<City> citiesOf(String factionId) =>
       cities.values.where((city) => city.owner == factionId);
@@ -55,18 +64,27 @@ class GameState {
     factionId,
   ).fold<int>(0, (sum, city) => sum + city.troops);
 
+  /// 势力每月金钱收入，逐城累加。
+  int goldIncomeOf(String factionId) => citiesOf(
+    factionId,
+  ).fold<int>(0, (sum, city) => sum + city.goldIncome);
+
+  /// 势力每月粮草收入，逐城累加。
+  int foodIncomeOf(String factionId) => citiesOf(
+    factionId,
+  ).fold<int>(0, (sum, city) => sum + city.foodIncome);
+
+  /// 势力每月粮草消耗，逐城累加。
+  int upkeepOf(String factionId) => citiesOf(
+    factionId,
+  ).fold<int>(0, (sum, city) => sum + city.foodUpkeep);
+
   int get totalCities => cities.length;
 
   /// 与本城接壤且属于其他势力的城池。
   List<City> enemyNeighbors(City city) => city.neighbors
       .map((id) => cities[id]!)
       .where((other) => other.owner != city.owner)
-      .toList();
-
-  /// 本城接壤且属于本方的城池。
-  List<City> friendlyNeighbors(City city) => city.neighbors
-      .map((id) => cities[id]!)
-      .where((other) => other.owner == city.owner)
       .toList();
 
   /// 某势力是否仍据有城池。

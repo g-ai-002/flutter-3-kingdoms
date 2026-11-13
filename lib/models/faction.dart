@@ -38,10 +38,6 @@ class FactionState {
   bool alive;
 
   FactionDef get def => FactionDefs.byId(id);
-
-  /// 每月粮草消耗：每千兵消耗一石。
-  int consumption(Iterable<int> troops) =>
-      troops.fold<int>(0, (sum, value) => sum + value) ~/ 1000 + 1;
 }
 
 /// 五大势力与配色，顺序即回合结算顺序。

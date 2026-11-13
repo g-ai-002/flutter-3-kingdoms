@@ -254,9 +254,9 @@ class BattleEngine {
     }
   }
 
-  static bool _tryDuel(BattleState state, Random random) {
-    if (state.attacker.wu < 88 || state.defender.wu < 88) return false;
-    if (random.nextDouble() > 0.3) return false;
+  static void _tryDuel(BattleState state, Random random) {
+    if (state.attacker.wu < 88 || state.defender.wu < 88) return;
+    if (random.nextDouble() > 0.3) return;
     final attackerWins =
         state.attacker.wu + random.nextInt(20) >=
         state.defender.wu + random.nextInt(20);
@@ -275,6 +275,5 @@ class BattleEngine {
                 '${state.attacker.generalName} 不敌退回本阵。',
       BattleLogKind.duel,
     );
-    return true;
   }
 }

@@ -99,8 +99,6 @@ class BattleState {
 
   static const int maxRounds = 14;
 
-  BattleSide get winner => attackerWon ? attacker : defender;
-
   void addLog(String text, BattleLogKind kind) =>
       log.add(BattleLogEntry(round, text, kind));
 }
