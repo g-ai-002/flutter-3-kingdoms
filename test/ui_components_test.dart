@@ -7,7 +7,7 @@ import 'package:flutter_3_kingdoms/pages/widgets/battle_widgets.dart';
 import 'package:flutter_3_kingdoms/pages/widgets/common.dart';
 import 'package:flutter_3_kingdoms/utils/formatters.dart';
 
-BattleSide _side({int troops = 800, int initial = 1000}) => BattleSide(
+BattleSide _side({int troops = 800}) => BattleSide(
   factionId: 'wei',
   cityId: 'puyang',
   cityName: '濮阳',
