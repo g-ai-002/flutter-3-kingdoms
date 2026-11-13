@@ -24,15 +24,17 @@
 
 ## 下载
 
-v0.1.0（首个版本）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.1.0)
+v0.1.1（重构优化）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.1.1)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64) | `flutter-3-kingdoms-0.1.0-android-aarch64.apk` |
+| Android (arm64) | `flutter-3-kingdoms-0.1.1-android-aarch64.apk` |
 | Windows (x64, Win10+) | 待补发：构建时 Gitea `windows-flutter` runner 离线，流水线配置已就绪 |
-| Web | `flutter-3-kingdoms-0.1.0-web.zip`（解压后起静态服务器） |
+| Web | `flutter-3-kingdoms-0.1.1-web.zip`（解压后起静态服务器） |
 
-在线试玩：[v0.1.0](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/src/branch/tea-pages/v0.1.0/) · [debug 预览](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/src/branch/tea-pages/debug/)
+在线试玩：[v0.1.1](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/src/branch/tea-pages/v0.1.1/) · [debug 预览](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/src/branch/tea-pages/debug/)
+
+上一版本 v0.1.0：[Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.1.0)
 
 ## 开发
 
@@ -68,4 +70,5 @@ lib/
 
 | 版本 | 说明 |
 | --- | --- |
+| v0.1.1 | 重构优化：结算与出征链路收敛、面板拆分、界面去重与死代码清理，玩法数值不变 |
 | v0.1.0 | 首个可玩版本：五方势力、二十八城、内政六令、人事登用、回合制攻城战、AI 争雄与三端发布 |
