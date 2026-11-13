@@ -45,7 +45,7 @@
 
 ### v0.3.0 (MINOR) — 2026-11-14
 
-- **状态**: 开发与测试完成，构建发布待执行 ⏳
+- **状态**: Android / Web 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.3.0)）；Windows 产物待 `windows-flutter` runner 恢复后补发 ⚠️
 - **目标**: 让争霸不止于刀兵：以外交争取喘息、拆散强敌，或以劝降收服弱小势力。
 - **任务**:
   - [x] 外交模型：停战（6 月）、联姻（24 月）与劝降三种手段，各有权衡与费用
@@ -57,8 +57,9 @@
   - [x] 剧本数据整理：二十八城改为单行表格式定义，为外交功能腾出代码预算
   - [x] 玩法说明补充外交规则；新增 7 项外交测试与 1 项遣使面板测试，87 项测试通过
   - [x] `flutter analyze` 无问题；lib 代码 9938 行，低于 10000 行上限
-  - [ ] 构建流水线：Dart 测试、Android、Web 与 Pages 任务通过
-  - [ ] Release：上传 Android、Web 产物；Windows 产物视 `windows-flutter` runner 状态补发
+  - [x] 构建流水线：Dart 测试、Android、Web 与 Pages 任务通过，Web 站点已发布到 `tea-pages/v0.3.0`
+  - [x] Release：Android APK 与 Web 产物已上传；Windows 任务因 runner 离线排队，工作流整体取消
+  - [ ] Windows 产物：`windows-flutter` runner 恢复后构建 Windows ZIP 并上传到 v0.3.0 Release
 
 ### v0.2.2 (PATCH) — 2026-11-14
 
