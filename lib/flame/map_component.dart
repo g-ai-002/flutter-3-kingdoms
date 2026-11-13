@@ -16,6 +16,10 @@ import '../utils/logic_rate.dart';
 import '../utils/map_layout.dart';
 
 /// Flame 战略地图：绘制城池、驿道与势力版图，处理点击与选中脉冲。
+///
+/// 底图、驿道与城池徽记合并成一张静态 [ui.Picture]，只有游戏数据（修订号）、
+/// 主题或缩放档位变化时才重新录制；每帧只补画选中环与可进攻目标，
+/// 避免在 60/120Hz 下反复排版 28 座城池的文字。
 class MapComponent extends PositionComponent with TapCallbacks {
   MapComponent({
     required this.controller,
@@ -30,36 +34,34 @@ class MapComponent extends PositionComponent with TapCallbacks {
   final FixedStepClock _stepper;
 
   double _time = 0;
-  ui.Picture? _background;
-  double _backgroundScale = 0;
-  Brightness? _backgroundBrightness;
+  ui.Picture? _staticLayer;
+  int _staticRevision = -1;
+  double _staticBoost = 0;
+  Brightness? _staticBrightness;
+  int _staticBuilds = 0;
+
   final Map<String, TextPainter> _namePainters = {};
   final Map<String, TextPainter> _troopPainters = {};
-  double _textScale = 0;
+  double _textBoost = 0;
   Brightness? _textBrightness;
   double _labelBoost = 1;
 
   MapPalette get _palette => MapPalette.of(brightness.value);
 
-  @override
-  Future<void> onLoad() async {
-    brightness.addListener(_invalidate);
-  }
+  /// 静态图层累计重新录制的次数，供性能测试断言缓存命中。
+  @visibleForTesting
+  int get staticLayerBuilds => _staticBuilds;
 
   @override
   void onRemove() {
-    brightness.removeListener(_invalidate);
-    _background?.dispose();
-    _background = null;
+    _disposeStaticLayer();
     super.onRemove();
   }
 
-  void _invalidate() {
-    _background?.dispose();
-    _background = null;
-    _namePainters.clear();
-    _troopPainters.clear();
-    _textScale = 0;
+  void _disposeStaticLayer() {
+    _staticLayer?.dispose();
+    _staticLayer = null;
+    _staticRevision = -1;
   }
 
   @override
@@ -74,31 +76,39 @@ class MapComponent extends PositionComponent with TapCallbacks {
   void render(Canvas canvas) {
     if (size.x <= 0 || size.y <= 0) return;
     final scale = _scale;
-    if ((_textScale - scale).abs() > 0.001 ||
-        _textBrightness != brightness.value) {
-      _textScale = scale;
-      _textBrightness = brightness.value;
-      // 小屏上地图整体缩得很小，按比例放大字面，保证城名仍可辨认。
-      _labelBoost = scale < 0.62 ? (0.62 / scale).clamp(1.0, 1.7) : 1.0;
-      _namePainters.clear();
-      _troopPainters.clear();
-    }
+    _syncTextMetrics(scale);
     canvas.save();
     canvas.scale(scale, scale);
-    canvas.drawPicture(_backgroundPicture());
-    _drawRoads(canvas);
-    _drawCities(canvas);
+    canvas.drawPicture(_staticPicture());
+    _drawSelection(canvas);
     canvas.restore();
   }
 
-  ui.Picture _backgroundPicture() {
-    final cached = _background;
+  /// 小屏上地图整体缩得很小，按比例放大字面，保证城名仍可辨认。
+  /// 缩放档位量化到 0.05，拖动窗口时不会每一帧都重录静态图层。
+  void _syncTextMetrics(double scale) {
+    final boost = scale < 0.62 ? (0.62 / scale).clamp(1.0, 1.7) : 1.0;
+    final quantized = (boost * 20).roundToDouble() / 20;
+    if (_textBrightness == brightness.value &&
+        (_textBoost - quantized).abs() < 0.001) {
+      return;
+    }
+    _textBoost = quantized;
+    _labelBoost = quantized;
+    _textBrightness = brightness.value;
+    _namePainters.clear();
+    _troopPainters.clear();
+  }
+
+  ui.Picture _staticPicture() {
+    final cached = _staticLayer;
     if (cached != null &&
-        (_backgroundScale - _scale).abs() < 0.0001 &&
-        _backgroundBrightness == brightness.value) {
+        _staticRevision == controller.revision &&
+        _staticBoost == _labelBoost &&
+        _staticBrightness == brightness.value) {
       return cached;
     }
-    _background?.dispose();
+    _staticLayer?.dispose();
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     paintMapBackground(
@@ -107,16 +117,19 @@ class MapComponent extends PositionComponent with TapCallbacks {
       _palette,
       fontFamily: kIsWeb ? kWebFontFamily : null,
     );
-    _background = recorder.endRecording();
-    _backgroundScale = _scale;
-    _backgroundBrightness = brightness.value;
-    return _background!;
+    _drawRoads(canvas);
+    _drawCities(canvas);
+    _staticLayer = recorder.endRecording();
+    _staticRevision = controller.revision;
+    _staticBoost = _labelBoost;
+    _staticBrightness = brightness.value;
+    _staticBuilds++;
+    return _staticLayer!;
   }
 
   void _drawRoads(Canvas canvas) {
     final palette = _palette;
     final cities = controller.game.cities;
-    final selected = controller.selectedCity;
     final seen = <String>{};
     for (final city in cities.values) {
       for (final neighborId in city.neighbors) {
@@ -126,17 +139,7 @@ class MapComponent extends PositionComponent with TapCallbacks {
         if (!seen.add(key)) continue;
         final other = cities[neighborId]!;
         final sameOwner = city.owner == other.owner;
-        final touchesSelected =
-            selected != null &&
-            (selected.id == city.id || selected.id == other.id);
-        final isTarget =
-            touchesSelected &&
-            selected.owner == controller.game.playerFaction &&
-            !sameOwner;
-        final highlighted = touchesSelected;
-        final color = isTarget
-            ? const Color(0xFFB03A2E).withValues(alpha: 0.8)
-            : sameOwner
+        final color = sameOwner
             ? FactionDefs.colorOf(city.owner).withValues(alpha: 0.36)
             : palette.road.withValues(alpha: 0.42);
         paintRoad(
@@ -144,48 +147,48 @@ class MapComponent extends PositionComponent with TapCallbacks {
           city.position,
           other.position,
           color,
-          highlighted ? 4.2 : 2.6,
-          dashLength: isTarget ? 13 : 9,
+          2.6,
+          dashLength: 9,
         );
       }
     }
   }
 
-  void _drawCities(Canvas canvas) {
-    final game = controller.game;
-    final selectedId = controller.selectedCityId;
+  /// 选中城池后，只补画相连驿道与脉冲环；底图与城池仍来自静态图层。
+  void _drawSelection(Canvas canvas) {
     final selected = controller.selectedCity;
-    final targets = <String>{};
-    if (selected != null && selected.owner == game.playerFaction) {
-      for (final neighbor in game.enemyNeighbors(selected)) {
-        targets.add(neighbor.id);
-      }
-    }
-    for (final city in game.cities.values) {
-      _drawCity(
+    if (selected == null) return;
+    final palette = _palette;
+    final isPlayer = selected.owner == controller.game.playerFaction;
+    for (final neighborId in selected.neighbors) {
+      final other = controller.game.cities[neighborId];
+      if (other == null) continue;
+      final sameOwner = other.owner == selected.owner;
+      final isTarget = isPlayer && !sameOwner;
+      final color = isTarget
+          ? const Color(0xFFB03A2E).withValues(alpha: 0.8)
+          : sameOwner
+          ? FactionDefs.colorOf(selected.owner).withValues(alpha: 0.5)
+          : palette.road.withValues(alpha: 0.6);
+      paintRoad(
         canvas,
-        city,
-        selected: city.id == selectedId,
-        target: targets.contains(city.id),
+        selected.position,
+        other.position,
+        color,
+        4.2,
+        dashLength: isTarget ? 13 : 9,
       );
+    }
+    _drawPulse(canvas, selected.position, selected: true);
+    if (!isPlayer) return;
+    for (final target in controller.game.enemyNeighbors(selected)) {
+      _drawPulse(canvas, target.position, selected: false);
     }
   }
 
-  void _drawCity(
-    Canvas canvas,
-    City city, {
-    required bool selected,
-    required bool target,
-  }) {
-    final center = city.position;
-    final ownerColor = FactionDefs.colorOf(city.owner);
+  void _drawPulse(Canvas canvas, Offset center, {required bool selected}) {
     const width = 76.0;
     const height = 32.0;
-    final rect = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: center, width: width, height: height),
-      const Radius.circular(7),
-    );
-
     if (selected) {
       final pulse = 1 + 0.06 * math.sin(_time * 4.6);
       canvas.drawRRect(
@@ -202,20 +205,37 @@ class MapComponent extends PositionComponent with TapCallbacks {
           ..strokeWidth = 3
           ..color = const Color(0xFFC8A15A).withValues(alpha: 0.9),
       );
+      return;
     }
-    if (target) {
-      final pulse = 0.45 + 0.4 * math.sin(_time * 5);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(center: center, width: width + 12, height: height + 12),
-          const Radius.circular(10),
-        ),
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.2
-          ..color = const Color(0xFFB03A2E).withValues(alpha: 0.35 + 0.35 * pulse),
-      );
+    final pulse = 0.45 + 0.4 * math.sin(_time * 5);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: center, width: width + 12, height: height + 12),
+        const Radius.circular(10),
+      ),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.2
+        ..color = const Color(0xFFB03A2E)
+            .withValues(alpha: 0.35 + 0.35 * pulse),
+    );
+  }
+
+  void _drawCities(Canvas canvas) {
+    for (final city in controller.game.cities.values) {
+      _drawCity(canvas, city);
     }
+  }
+
+  void _drawCity(Canvas canvas, City city) {
+    final center = city.position;
+    final ownerColor = FactionDefs.colorOf(city.owner);
+    const width = 76.0;
+    const height = 32.0;
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: center, width: width, height: height),
+      const Radius.circular(7),
+    );
 
     // 势力色的旗面，深浅两层让城池在宣纸上立起来。
     canvas.drawRRect(
@@ -297,20 +317,22 @@ class MapComponent extends PositionComponent with TapCallbacks {
 
   TextPainter _troopPainter(int troops) {
     final label = '兵 ${_compactTroops(troops)}';
-    return _troopPainters.putIfAbsent(label, () {
-      return TextPainter(
-        text: TextSpan(
-          text: label,
-          style: TextStyle(
-            fontSize: 11 * math.min(_labelBoost, 1.4),
-            letterSpacing: 0.4,
-            color: _palette.ink.withValues(alpha: 0.75),
-            fontFamily: kIsWeb ? kWebFontFamily : null,
-          ),
+    final cached = _troopPainters[label];
+    if (cached != null) return cached;
+    // 长期对局里兵数标签会不断出现新组合，超过上限就整体重建，避免缓存无限增长。
+    if (_troopPainters.length >= 96) _troopPainters.clear();
+    return _troopPainters[label] = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: TextStyle(
+          fontSize: 11 * math.min(_labelBoost, 1.4),
+          letterSpacing: 0.4,
+          color: _palette.ink.withValues(alpha: 0.75),
+          fontFamily: kIsWeb ? kWebFontFamily : null,
         ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-    });
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
   }
 
   String _compactTroops(int troops) {
