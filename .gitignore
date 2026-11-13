@@ -1,0 +1,39 @@
+# Flutter
+.metadata
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool/
+.packages
+build/
+*.iml
+.idea/
+.vscode/
+*.lock
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+
+# Windows / macOS / iOS / Linux / Web：由 CI 生成平台文件
+windows/
+macos/
+ios/
+linux/
+web/
+
+# Project
+*.log
+.env
+token
+
+# System
+.DS_Store
+Thumbs.db
+**/GeneratedPluginRegistrant.java
+**/gradle-wrapper.jar
+**/gradlew
+**/gradlew.bat
+
+.qwen
