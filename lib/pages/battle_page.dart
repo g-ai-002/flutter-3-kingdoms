@@ -157,8 +157,8 @@ class _BattlePageState extends State<BattlePage> {
                         ],
                       ),
                     ),
-                    Expanded(child: _buildLog(theme)),
-                    if (!_state.finished) _buildTactics(theme),
+                    Expanded(child: _buildLog()),
+                    if (!_state.finished) _buildTactics(),
                   ],
                 ),
                 if (_state.finished)
@@ -225,7 +225,7 @@ class _BattlePageState extends State<BattlePage> {
     );
   }
 
-  Widget _buildLog(ThemeData theme) {
+  Widget _buildLog() {
     final entries = _state.log.length <= 5
         ? _state.log
         : _state.log.sublist(_state.log.length - 5);
@@ -265,7 +265,7 @@ class _BattlePageState extends State<BattlePage> {
     );
   }
 
-  Widget _buildTactics(ThemeData theme) {
+  Widget _buildTactics() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
       child: LayoutBuilder(

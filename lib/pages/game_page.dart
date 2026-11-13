@@ -7,11 +7,9 @@ import '../game/game_controller.dart';
 import '../models/battle.dart';
 import '../models/city.dart';
 import '../models/faction.dart';
-import '../models/game_state.dart';
 import '../providers/settings_provider.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../utils/map_display_mode.dart';
 import 'battle_page.dart';
@@ -73,18 +71,17 @@ class _GamePageState extends State<GamePage> {
 
   Future<void> _showOutcome() async {
     final game = controller.game;
-    final victory = game.isVictory;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        title: Text(victory ? '一统山河' : '霸业成空'),
+        title: Text(game.outcome?.label ?? '征战未决'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              victory
+              game.isVictory
                   ? '${formatYearMonth(game.year, game.month)}，'
                         '${FactionDefs.byId(game.playerFaction).ruler} 扫平群雄，天下归心。'
                   : '${formatYearMonth(game.year, game.month)}，'
@@ -92,9 +89,11 @@ class _GamePageState extends State<GamePage> {
               style: const TextStyle(height: 1.6),
             ),
             const SizedBox(height: 12),
-            Text('据城 ${game.cityCount(game.playerFaction)} / ${game.totalCities}'),
+            Text(
+              '据城 ${game.cityCount(game.playerFaction)} / ${game.totalCities}',
+            ),
             Text('带甲 ${game.troopsOf(game.playerFaction)}'),
-            Text('征战 ${(game.year - AppConstants.startYear) * 12 + game.month - 1} 个月'),
+            Text('征战 ${game.elapsedMonths} 个月'),
           ],
         ),
         actions: [
@@ -293,50 +292,29 @@ class _GamePageState extends State<GamePage> {
   }
 
   Widget _buildTools() {
-    const compact = true;
     return Wrap(
       spacing: 0,
       runSpacing: 0,
       children: [
         _tool(
-          Icons.public_outlined,
-          '天下势力',
-          () => showFactionOverviewSheet(context, controller),
-          compact,
-        ),
-        _tool(
-          Icons.history_edu_outlined,
-          '战报',
-          () => showChronicleSheet(context, controller),
-          compact,
-        ),
-        _tool(
           Icons.menu_book_outlined,
           '玩法说明',
           () => _push(const HelpPage()),
-          compact,
         ),
-        _tool(Icons.settings_outlined, '设置', () => _push(const SettingsPage()), compact),
+        _tool(Icons.settings_outlined, '设置', () => _push(const SettingsPage())),
       ],
     );
   }
 
-  Widget _tool(
-    IconData icon,
-    String tooltip,
-    VoidCallback onTap,
-    bool compact,
-  ) {
+  Widget _tool(IconData icon, String tooltip, VoidCallback onTap) {
+    // 顶栏只放说明与设置，势力 / 战报已由底部操作条承担。
     return IconButton(
       tooltip: tooltip,
       onPressed: onTap,
-      icon: Icon(icon, size: compact ? 18 : 20),
+      icon: Icon(icon, size: 18),
       padding: EdgeInsets.zero,
       visualDensity: VisualDensity.compact,
-      constraints: BoxConstraints.tightFor(
-        width: compact ? 28 : 32,
-        height: compact ? 28 : 32,
-      ),
+      constraints: const BoxConstraints.tightFor(width: 28, height: 28),
     );
   }
 }
@@ -355,89 +333,48 @@ class _FactionHudCard extends StatelessWidget {
     final faction = game.player;
     final def = FactionDefs.byId(game.playerFaction);
     final compact = HudScope.compactOf(context);
-    final identity = Row(
+    final resources = '金 ${faction.gold} · 粮 ${faction.food}';
+    final identity = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        FactionSeal(factionId: game.playerFaction, size: compact ? 26 : 30),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${def.ruler} · ${def.name}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleSmall?.copyWith(fontSize: 13),
+        Text(
+          '${def.ruler} · ${def.name}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontSize: compact ? 12.5 : 13,
+          ),
+        ),
+        Text(
+          formatYearMonth(game.year, game.month),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: colors.onSurfaceVariant,
+            fontSize: compact ? 9.5 : 10,
+          ),
+        ),
+        // 侧栏可能只有一百多像素宽：紧凑模式把钱粮并进第二三行，不另起标签。
+        if (compact)
+          Text(
+            resources,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colors.onSurfaceVariant,
+              fontSize: 9.5,
             ),
-            Text(
-              formatYearMonth(game.year, game.month),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.onSurfaceVariant,
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-    final resources = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        InfoChip(
-          text: '金 ${faction.gold}',
-          dense: true,
-          color: appGold,
-        ),
-        const SizedBox(width: 5),
-        InfoChip(
-          text: '粮 ${faction.food}',
-          dense: true,
-          color: appJade,
-        ),
+          ),
       ],
     );
     if (compact) {
-      // 侧栏可能只有一百多像素宽：竖排身份与钱粮，文字省略而不溢出。
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           FactionSeal(factionId: game.playerFaction, size: 26),
           const SizedBox(width: 7),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${def.ruler} · ${def.name}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(fontSize: 12.5),
-                ),
-                Text(
-                  formatYearMonth(game.year, game.month),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                    fontSize: 9.5,
-                  ),
-                ),
-                Text(
-                  '金 ${faction.gold} · 粮 ${faction.food}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                    fontSize: 9.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          Flexible(child: identity),
         ],
       );
     }
@@ -446,13 +383,21 @@ class _FactionHudCard extends StatelessWidget {
       runSpacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        identity,
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FactionSeal(factionId: game.playerFaction, size: 30),
+            const SizedBox(width: 8),
+            identity,
+          ],
+        ),
         InfoChip(
           text: '城 ${game.cityCount(game.playerFaction)}',
           dense: true,
           color: def.color,
         ),
-        resources,
+        InfoChip(text: '金 ${faction.gold}', dense: true, color: appGold),
+        InfoChip(text: '粮 ${faction.food}', dense: true, color: appJade),
       ],
     );
   }
@@ -602,10 +547,3 @@ class _GameControls extends StatelessWidget {
     return compact ? Tooltip(message: label, child: button) : button;
   }
 }
-
-/// 供测试与外部展示的结局摘要。
-String describeOutcome(GameState game) => switch (game.outcome) {
-  GameOutcome.victory => '一统山河',
-  GameOutcome.defeat => '霸业成空',
-  null => '征战未决',
-};

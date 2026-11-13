@@ -26,7 +26,6 @@ class CityInfoCard extends StatelessWidget {
 
   Widget _buildCompact(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
     final governor = controller.governorOf(city);
     return Wrap(
       spacing: 6,
@@ -39,30 +38,32 @@ class CityInfoCard extends StatelessWidget {
           style: theme.textTheme.titleSmall?.copyWith(fontSize: 14),
         ),
         InfoChip(text: city.terrain.label, dense: true),
-        Icon(Icons.groups_outlined, size: 13, color: colors.onSurfaceVariant),
+        _metric(Icons.groups_outlined, '${city.troops}', theme, bold: true),
+        _metric(Icons.person_outline, governor?.name ?? '无太守', theme),
+        _metric(Icons.shield_outlined, '${city.defense}', theme),
+      ],
+    );
+  }
+
+  /// 紧凑模式的一枚小指标：图标 + 文字，视觉上并入同一行。
+  Widget _metric(
+    IconData icon,
+    String text,
+    ThemeData theme, {
+    bool bold = false,
+  }) {
+    final colors = theme.colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
         const SizedBox(width: 2),
+        Icon(icon, size: 13, color: colors.onSurfaceVariant),
+        const SizedBox(width: 3),
         Text(
-          '${city.troops}',
+          text,
           style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Icon(Icons.person_outline, size: 13, color: colors.onSurfaceVariant),
-        const SizedBox(width: 2),
-        Text(
-          governor?.name ?? '无太守',
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: colors.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Icon(Icons.shield_outlined, size: 13, color: colors.onSurfaceVariant),
-        const SizedBox(width: 2),
-        Text(
-          '${city.defense}',
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: colors.onSurfaceVariant,
+            color: bold ? null : colors.onSurfaceVariant,
+            fontWeight: bold ? FontWeight.w600 : null,
           ),
         ),
       ],
@@ -75,6 +76,13 @@ class CityInfoCard extends StatelessWidget {
     final governor = controller.governorOf(city);
     final faction = FactionDefs.byId(city.owner);
     final enemies = controller.game.enemyNeighbors(city);
+    final stats = <(String, int, Color)>[
+      ('农业', city.agriculture, appJade),
+      ('商业', city.commerce, appGold),
+      ('治安', city.order, appRed),
+      ('训练', city.training, colors.secondary),
+      ('城防', city.defense, colors.tertiary),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -137,25 +145,10 @@ class CityInfoCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 9),
-        StatBar(label: '农业', value: city.agriculture, color: appJade, compact: true),
-        const SizedBox(height: 5),
-        StatBar(label: '商业', value: city.commerce, color: appGold, compact: true),
-        const SizedBox(height: 5),
-        StatBar(label: '治安', value: city.order, color: appRed, compact: true),
-        const SizedBox(height: 5),
-        StatBar(
-          label: '训练',
-          value: city.training,
-          color: colors.secondary,
-          compact: true,
-        ),
-        const SizedBox(height: 5),
-        StatBar(
-          label: '城防',
-          value: city.defense,
-          color: colors.tertiary,
-          compact: true,
-        ),
+        for (final (label, value, color) in stats) ...[
+          StatBar(label: label, value: value, color: color, compact: true),
+          if (label != stats.last.$1) const SizedBox(height: 5),
+        ],
         const SizedBox(height: 9),
         Text(
           enemies.isEmpty

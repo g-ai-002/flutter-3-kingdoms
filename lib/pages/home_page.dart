@@ -90,6 +90,9 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         _TopBar(
                           darkMode: settings.darkMode,
+                          onToggleDark: () => settings.setDarkMode(
+                            !settings.darkMode,
+                          ),
                           onHelp: () => _open(const HelpPage()),
                           onSettings: () => _open(const SettingsPage()),
                         ),
@@ -191,17 +194,18 @@ class _HomePageState extends State<HomePage> {
 class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.darkMode,
+    required this.onToggleDark,
     required this.onHelp,
     required this.onSettings,
   });
 
   final bool darkMode;
+  final VoidCallback onToggleDark;
   final VoidCallback onHelp;
   final VoidCallback onSettings;
 
   @override
   Widget build(BuildContext context) {
-    final settings = context.read<SettingsProvider>();
     final colors = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
     return Row(
@@ -246,7 +250,7 @@ class _TopBar extends StatelessWidget {
         const Spacer(),
         IconButton(
           tooltip: darkMode ? '切换浅色' : '切换深色',
-          onPressed: () => settings.setDarkMode(!darkMode),
+          onPressed: onToggleDark,
           icon: Icon(
             darkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
             size: 21,

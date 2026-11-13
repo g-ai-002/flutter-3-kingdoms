@@ -1,0 +1,151 @@
+import 'package:flutter/material.dart';
+
+import '../../../game/game_controller.dart';
+import '../../../models/chronicle.dart';
+import '../../../theme/app_theme.dart';
+
+/// 战报：按月记录的内政、战斗与随机事件。
+Future<void> showChronicleSheet(
+  BuildContext context,
+  GameController controller,
+) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (sheetContext) => SizedBox(
+      height: MediaQuery.sizeOf(sheetContext).height * 0.72,
+      child: _ChronicleSheet(controller: controller),
+    ),
+  );
+}
+
+class _ChronicleSheet extends StatefulWidget {
+  const _ChronicleSheet({required this.controller});
+
+  final GameController controller;
+
+  @override
+  State<_ChronicleSheet> createState() => _ChronicleSheetState();
+}
+
+class _ChronicleSheetState extends State<_ChronicleSheet> {
+  static const int _maxEntries = 120;
+
+  bool _onlyMine = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final game = widget.controller.game;
+    final entries = game.chronicle.reversed
+        .where(
+          (entry) =>
+              !_onlyMine ||
+              entry.factionId == null ||
+              entry.factionId == game.playerFaction,
+        )
+        .take(_maxEntries)
+        .toList();
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Row(
+            children: [
+              Text('战报', style: theme.textTheme.titleSmall),
+              const SizedBox(width: 8),
+              Text(
+                '共 ${game.chronicle.length} 条',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              const Spacer(),
+              FilterChip(
+                label: const Text('只看我方'),
+                selected: _onlyMine,
+                onSelected: (value) => setState(() => _onlyMine = value),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: entries.isEmpty
+              ? Center(
+                  child: Text(
+                    '暂无战报',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                  itemCount: entries.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 7),
+                  itemBuilder: (context, index) => _ChronicleRow(
+                    entry: entries[index],
+                    systemColor: colors.onSurfaceVariant,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChronicleRow extends StatelessWidget {
+  const _ChronicleRow({required this.entry, required this.systemColor});
+
+  final Chronicle entry;
+  final Color systemColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          margin: const EdgeInsets.only(top: 5, right: 9),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: switch (entry.kind) {
+              ChronicleKind.battle => appRed,
+              ChronicleKind.event => appGold,
+              ChronicleKind.order => appJade,
+              ChronicleKind.system => systemColor,
+            },
+          ),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                entry.text,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 12,
+                  height: 1.45,
+                ),
+              ),
+              Text(
+                '${entry.year}年${entry.month}月',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  fontSize: 9.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
