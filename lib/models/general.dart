@@ -62,7 +62,9 @@ class General {
 
   /// 攻城主将的战力系数。
   double get attackFactor =>
-      1 + (wu * 0.5 + lead * 0.5) / 200 + (trait == GeneralTrait.warrior ? 0.08 : 0);
+      1 +
+      (wu * 0.5 + lead * 0.5) / 200 +
+      (trait == GeneralTrait.warrior ? 0.08 : 0);
 
   /// 守城主将的战力系数。
   double get defenseFactor =>

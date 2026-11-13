@@ -67,6 +67,21 @@ void main() {
     expect(controller.game.defenderOf(empty), isNull);
   });
 
+  test('城池名册：太守优先守城，在野名士单独列出', () {
+    final game = _newGame().game;
+    final city = game.cities['luoyang']!;
+    expect(game.governorOf(city)?.name, '夏侯渊');
+    expect(game.defenderOf(city)?.id, city.governor);
+    expect(
+      game.residentsOf(city).every((item) => item.factionId == 'wei'),
+      isTrue,
+    );
+    expect(
+      game.freeGeneralsIn(city).map((item) => item.id),
+      contains('zhangliao'),
+    );
+  });
+
   test('结局标签与征战月数', () {
     final controller = _newGame();
     expect(controller.game.elapsedMonths, 0);

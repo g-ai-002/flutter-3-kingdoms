@@ -67,7 +67,8 @@ class GameState {
 
   /// 可出任攻城主将的武将，按攻城战力从高到低。
   List<General> attackLeaders(City city) =>
-      residentsOf(city)..sort((a, b) => b.attackFactor.compareTo(a.attackFactor));
+      residentsOf(city)
+        ..sort((a, b) => b.attackFactor.compareTo(a.attackFactor));
 
   General? governorOf(City city) =>
       city.governor == null ? null : generals[city.governor];
@@ -134,11 +135,7 @@ class GameState {
   bool hasCities(String factionId) =>
       cities.values.any((city) => city.owner == factionId);
 
-  void addChronicle(
-    String text,
-    ChronicleKind kind, {
-    String? factionId,
-  }) {
+  void addChronicle(String text, ChronicleKind kind, {String? factionId}) {
     chronicle.add(
       Chronicle(
         year: year,

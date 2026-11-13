@@ -117,5 +117,6 @@ class City {
   int get foodUpkeep => (troops / 50).round();
 
   /// 城池战力估值：兵力、训练与城防的综合，供 AI 与界面参考。
-  int get power => (troops * (0.6 + training / 160) * (1 + defense / 220)).round();
+  int get power =>
+      (troops * (0.6 + training / 160) * (1 + defense / 220)).round();
 }

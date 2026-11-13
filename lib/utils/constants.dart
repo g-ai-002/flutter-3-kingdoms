@@ -27,7 +27,4 @@ class AppConstants {
   static const String prefKeyLogicRate = 'logic_rate';
   static const String prefKeyDifficulty = 'difficulty';
   static const String prefKeyPlayerFaction = 'player_faction';
-
-  /// 每月每城最多执行的指令数。
-  static const int ordersPerCity = 1;
 }

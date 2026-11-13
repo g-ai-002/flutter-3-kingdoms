@@ -12,6 +12,7 @@ import '../models/faction.dart';
 import '../services/sound_service.dart';
 import '../theme/map_painting.dart';
 import '../utils/constants.dart';
+import '../utils/formatters.dart';
 import '../utils/logic_rate.dart';
 import '../utils/map_layout.dart';
 
@@ -316,7 +317,7 @@ class MapComponent extends PositionComponent with TapCallbacks {
   });
 
   TextPainter _troopPainter(int troops) {
-    final label = '兵 ${_compactTroops(troops)}';
+    final label = '兵 ${formatTroopsCompact(troops)}';
     final cached = _troopPainters[label];
     if (cached != null) return cached;
     // 长期对局里兵数标签会不断出现新组合，超过上限就整体重建，避免缓存无限增长。
@@ -333,12 +334,6 @@ class MapComponent extends PositionComponent with TapCallbacks {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-  }
-
-  String _compactTroops(int troops) {
-    if (troops >= 10000) return '${(troops / 10000).toStringAsFixed(1)}万';
-    if (troops >= 1000) return '${(troops / 1000).toStringAsFixed(1)}千';
-    return '$troops';
   }
 
   @override

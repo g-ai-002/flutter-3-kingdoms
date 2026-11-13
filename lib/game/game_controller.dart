@@ -38,10 +38,7 @@ class GameController extends ChangeNotifier {
     Difficulty difficulty = Difficulty.normal,
     int? seed,
   }) : _random = Random(seed),
-       state = Scenario.build(
-         playerFaction: factionId,
-         difficulty: difficulty,
-       );
+       state = Scenario.build(playerFaction: factionId, difficulty: difficulty);
 
   /// 从存档恢复：局面已由 SaveCodec 还原，随机数用新种子重开。
   GameController.fromState(this.state, {int? seed}) : _random = Random(seed);
@@ -251,8 +248,9 @@ class GameController extends ChangeNotifier {
     required String attackerFaction,
   }) {
     final defender = state.defenderOf(target);
-    final attackerMorale =
-        (88 + (attacker?.lead ?? 50) / 8).clamp(70, 120).round();
+    final attackerMorale = (88 + (attacker?.lead ?? 50) / 8)
+        .clamp(70, 120)
+        .round();
     final defenderMorale = (96 + target.defense / 10).clamp(80, 125).round();
     return BattleSetup(
       attacker: BattleSide(
@@ -321,10 +319,9 @@ class GameController extends ChangeNotifier {
         if (source.governor == general.id) {
           source.governor = state.residentsOf(source).isEmpty
               ? null
-              : (state.residentsOf(source)
-                        ..sort((a, b) => b.lead.compareTo(a.lead)))
-                    .first
-                    .id;
+              : (state.residentsOf(
+                  source,
+                )..sort((a, b) => b.lead.compareTo(a.lead))).first.id;
         }
       } else {
         target.governor = null;
@@ -355,11 +352,7 @@ class GameController extends ChangeNotifier {
   }
 
   /// 破城后的武将处置：忠义者归野，其余有几率归顺新主。
-  void _resolveCaptives(
-    City city,
-    List<General> captives,
-    String winner,
-  ) {
+  void _resolveCaptives(City city, List<General> captives, String winner) {
     for (final captive in captives) {
       final joinChance = (1 - captive.loyalty / 130).clamp(0.08, 0.55);
       if (_random.nextDouble() < joinChance) {
@@ -425,9 +418,7 @@ class GameController extends ChangeNotifier {
       } else if (city.troops < city.maxTroops * 0.7) {
         action = CityAction.recruit;
       } else {
-        action = _random.nextBool()
-            ? CityAction.reclaim
-            : CityAction.train;
+        action = _random.nextBool() ? CityAction.reclaim : CityAction.train;
       }
       if (faction.gold < action.goldCost || faction.food < action.foodCost) {
         continue;

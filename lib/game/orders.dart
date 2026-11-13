@@ -143,10 +143,7 @@ class OrderService {
         ChronicleKind.order,
         factionId: city.owner,
       );
-      return OrderResult(
-        success: false,
-        message: '${general.name} 婉言谢绝，登用未成',
-      );
+      return OrderResult(success: false, message: '${general.name} 婉言谢绝，登用未成');
     }
     general.factionId = city.owner;
     general.loyalty = min(90, 55 + politics ~/ 3);
@@ -159,10 +156,7 @@ class OrderService {
       ChronicleKind.event,
       factionId: city.owner,
     );
-    return OrderResult(
-      success: true,
-      message: '${general.name} 归顺，帐下再添一员',
-    );
+    return OrderResult(success: true, message: '${general.name} 归顺，帐下再添一员');
   }
 
   /// 任命太守：不消耗本月指令。
@@ -170,5 +164,4 @@ class OrderService {
     if (!city.generalIds.contains(generalId)) return;
     city.governor = generalId;
   }
-
 }

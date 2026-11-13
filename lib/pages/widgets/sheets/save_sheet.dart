@@ -8,14 +8,12 @@ import '../../../utils/formatters.dart';
 import '../common.dart';
 
 /// 对局内存档面板：三个手动槽位，可覆盖写入或删除。
-Future<void> showSaveSheet(
-  BuildContext context,
-  GameController controller,
-) => showModalBottomSheet<void>(
-  context: context,
-  showDragHandle: true,
-  builder: (_) => _SaveSheet(controller: controller),
-);
+Future<void> showSaveSheet(BuildContext context, GameController controller) =>
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => _SaveSheet(controller: controller),
+    );
 
 class _SaveSheet extends StatefulWidget {
   const _SaveSheet({required this.controller});
@@ -133,9 +131,8 @@ class _LoadSheetState extends State<_LoadSheet> {
     if (!mounted) return;
     if (state == null) {
       setState(() => _busy = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('存档读取失败')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('存档读取失败')));
       return;
     }
     Navigator.of(context).pop(state);

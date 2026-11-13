@@ -118,9 +118,6 @@ class MonthEvents {
     _log(state, city, '${city.name}：${general.name} 慕名来投，愿为本方效力。');
   }
 
-  static void _log(GameState state, City city, String text) => state.addChronicle(
-    text,
-    ChronicleKind.event,
-    factionId: city.owner,
-  );
+  static void _log(GameState state, City city, String text) =>
+      state.addChronicle(text, ChronicleKind.event, factionId: city.owner);
 }

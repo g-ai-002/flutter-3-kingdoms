@@ -36,8 +36,6 @@ class FactionState {
   int gold;
   int food;
   bool alive;
-
-  FactionDef get def => FactionDefs.byId(id);
 }
 
 /// 五大势力与配色，顺序即回合结算顺序。

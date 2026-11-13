@@ -50,7 +50,11 @@ class SaveCodec {
       'outcome': state.outcome?.name,
       'factions': {
         for (final entry in state.factions.entries)
-          entry.key: [entry.value.gold, entry.value.food, entry.value.alive ? 1 : 0],
+          entry.key: [
+            entry.value.gold,
+            entry.value.food,
+            entry.value.alive ? 1 : 0,
+          ],
       },
       'cities': {
         for (final city in state.cities.values)

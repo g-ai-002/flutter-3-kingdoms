@@ -32,16 +32,12 @@ class BattleEngine {
       return BattleTactic.fire;
     }
     if (ratio < 0.65) {
-      return random.nextDouble() < 0.62
-          ? BattleTactic.hold
-          : BattleTactic.raid;
+      return random.nextDouble() < 0.62 ? BattleTactic.hold : BattleTactic.raid;
     }
     if (ratio > 1.2 && random.nextDouble() < 0.45) {
       return BattleTactic.assault;
     }
-    return random.nextDouble() < 0.3
-        ? BattleTactic.fire
-        : BattleTactic.assault;
+    return random.nextDouble() < 0.3 ? BattleTactic.fire : BattleTactic.assault;
   }
 
   /// 进攻方的自动策略，用于 AI 对战与「快速结束」。
@@ -55,9 +51,7 @@ class BattleEngine {
         random.nextDouble() < 0.4) {
       return BattleTactic.fire;
     }
-    return random.nextDouble() < 0.3
-        ? BattleTactic.raid
-        : BattleTactic.assault;
+    return random.nextDouble() < 0.3 ? BattleTactic.raid : BattleTactic.assault;
   }
 
   /// 结算一回合，返回本回合双方伤亡。
@@ -84,14 +78,17 @@ class BattleEngine {
     }
 
     final defTactic = defenderTactic(state, random);
-    final attackerPower = _power(state.attacker, attackerTactic, state.defender);
+    final attackerPower = _power(
+      state.attacker,
+      attackerTactic,
+      state.defender,
+    );
     final defenderPower = _power(state.defender, defTactic, state.attacker);
     final total = attackerPower + defenderPower;
     final share = total <= 0 ? 0.5 : attackerPower / total;
 
     var defenderLoss =
-        (state.defender.troops * 0.2 * share +
-            state.attacker.troops * 0.018) *
+        (state.defender.troops * 0.2 * share + state.attacker.troops * 0.018) *
         (0.85 + random.nextDouble() * 0.3);
     var attackerLoss =
         (state.attacker.troops * 0.2 * (1 - share) +
@@ -123,8 +120,14 @@ class BattleEngine {
 
     final defenderBefore = state.defender.troops;
     final attackerBefore = state.attacker.troops;
-    state.defender.troops = max(0, state.defender.troops - defenderLoss.round());
-    state.attacker.troops = max(0, state.attacker.troops - attackerLoss.round());
+    state.defender.troops = max(
+      0,
+      state.defender.troops - defenderLoss.round(),
+    );
+    state.attacker.troops = max(
+      0,
+      state.attacker.troops - attackerLoss.round(),
+    );
     final actualDefenderLoss = defenderBefore - state.defender.troops;
     final actualAttackerLoss = attackerBefore - state.attacker.troops;
 
@@ -174,10 +177,7 @@ class BattleEngine {
       );
     }
 
-    return (
-      attackerLoss: actualAttackerLoss,
-      defenderLoss: actualDefenderLoss,
-    );
+    return (attackerLoss: actualAttackerLoss, defenderLoss: actualDefenderLoss);
   }
 
   /// 自动打完一场战斗，供 AI 势力之间即时结算。
@@ -208,12 +208,11 @@ class BattleEngine {
       GeneralTrait.balanced => 0.04,
     };
     final terrainFactor = side.attacking ? side.terrain.attackFactor : 1.0;
-    final defenseFactor = 1 +
-        (side.defense + side.terrain.defenseBonus * 100) / 240;
+    final defenseFactor =
+        1 + (side.defense + side.terrain.defenseBonus * 100) / 240;
     final moraleFactor = 0.62 + side.morale / 260;
     final trainFactor = 0.62 + side.training / 220;
-    final generalFactor =
-        0.78 + side.lead / 240 + side.wu / 700 + traitBonus;
+    final generalFactor = 0.78 + side.lead / 240 + side.wu / 700 + traitBonus;
     final tacticFactor = switch (tactic) {
       BattleTactic.fire =>
         (1.18 + (side.intel - foe.intel) / 150).clamp(0.8, 1.7).toDouble(),
@@ -270,7 +269,9 @@ class BattleEngine {
 
   static void _tryDuel(BattleState state, Random random) {
     if (state.attacker.wu < 88 || state.defender.wu < 88) return;
-    final divine = state.attacker.skill == GeneralSkill.divineMight ? 0.12 : 0.0;
+    final divine = state.attacker.skill == GeneralSkill.divineMight
+        ? 0.12
+        : 0.0;
     if (random.nextDouble() > 0.3 + divine) return;
     final edge = state.attacker.skill == GeneralSkill.divineMight ? 8 : 0;
     final attackerWins =

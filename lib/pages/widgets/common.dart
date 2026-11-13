@@ -165,7 +165,9 @@ class SectionCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         title!,
-                        style: theme.textTheme.titleSmall?.copyWith(fontSize: 13),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                     ?trailing,
@@ -364,4 +366,3 @@ class EmptyHint extends StatelessWidget {
     );
   }
 }
-

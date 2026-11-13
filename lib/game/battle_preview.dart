@@ -33,7 +33,9 @@ class BattlePreview {
   /// 攻方战力与守城战力的比值，1.0 表示势均力敌。
   double get ratio {
     final power = target.power;
-    return source.troops * (0.6 + source.training / 160) / (power <= 0 ? 1 : power);
+    return source.troops *
+        (0.6 + source.training / 160) /
+        (power <= 0 ? 1 : power);
   }
 
   BattleOdds get odds => BattleOdds.of(ratio);
