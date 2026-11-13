@@ -75,6 +75,7 @@ Future<void> _openEnvoyDialog(
   StateSetter refresh,
 ) async {
   final game = controller.game;
+  final pacted = game.hasPact(game.playerFaction, def.id);
   final move = await showDialog<DiplomaticMove>(
     context: context,
     builder: (dialogContext) {
@@ -98,8 +99,12 @@ Future<void> _openEnvoyDialog(
                 gold: game.player.gold,
                 chance: DiplomacyService.chanceOf(game, def.id, move),
                 blocked:
-                    move == DiplomaticMove.vassalize &&
-                    !DiplomacyService.canVassalize(game, def.id),
+                    move == DiplomaticMove.vassalize
+                    ? !DiplomacyService.canVassalize(game, def.id)
+                    : pacted,
+                blockedLabel: move == DiplomaticMove.vassalize
+                    ? '势力尚强'
+                    : '已有盟约',
                 onPressed: () => Navigator.of(dialogContext).pop(move),
               ),
               const SizedBox(height: 7),
@@ -124,6 +129,7 @@ class _MoveButton extends StatelessWidget {
     required this.gold,
     required this.chance,
     required this.blocked,
+    required this.blockedLabel,
     required this.onPressed,
   });
 
@@ -131,6 +137,7 @@ class _MoveButton extends StatelessWidget {
   final int gold;
   final double chance;
   final bool blocked;
+  final String blockedLabel;
   final VoidCallback onPressed;
 
   @override
@@ -168,7 +175,7 @@ class _MoveButton extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             blocked
-                ? '势力尚强'
+                ? blockedLabel
                 : affordable
                 ? '成算 ${(chance * 100).round()}%'
                 : '金钱不足',
