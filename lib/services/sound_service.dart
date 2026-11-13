@@ -84,10 +84,18 @@ class SoundService {
     try {
       final soloud = SoLoud.instance;
       if (!soloud.isInitialized) await soloud.init();
-      for (final sound in GameSound.values) {
+      final sounds = GameSound.values;
+      // 七段提示音在后台 isolate 一次合成，避免启动或首次点击时卡住界面。
+      final clips = await synthesizeWavBatchAsync([
+        for (final sound in sounds) _presets[sound]!,
+      ]);
+      for (var i = 0; i < sounds.length; i++) {
+        final sound = sounds[i];
+        final clip = _clips[sound] ?? clips[i];
+        _clips[sound] = clip;
         _sources[sound] = await soloud.loadMem(
           'sanguo-${sound.name}.wav',
-          clipOf(sound),
+          clip,
         );
       }
     } catch (error) {

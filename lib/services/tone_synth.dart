@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'audio_task.dart';
+
 /// 音效采样率：短促提示音用 22.05 kHz 足够，数据量约为 44.1 kHz 的一半。
 const int kSynthSampleRate = 22050;
 
@@ -61,6 +63,22 @@ Uint8List synthesizeWav(
 
   return _encodePcm(mix, sampleRate);
 }
+
+/// 后台合成单段提示音；启动与首次点击时不再占用界面线程。
+Future<Uint8List> synthesizeWavAsync(
+  List<SynthNote> notes, {
+  int sampleRate = kSynthSampleRate,
+}) => runAudioTask(() => synthesizeWav(notes, sampleRate: sampleRate));
+
+/// 一次在后台合成多段提示音，省去反复创建 isolate 的开销。
+Future<List<Uint8List>> synthesizeWavBatchAsync(
+  List<List<SynthNote>> batches, {
+  int sampleRate = kSynthSampleRate,
+}) => runAudioTask(
+  () => [
+    for (final notes in batches) synthesizeWav(notes, sampleRate: sampleRate),
+  ],
+);
 
 /// 背景音乐采样率与循环长度：古筝拨弦，20 秒一循环。
 const int kMusicSampleRate = 16000;
@@ -159,6 +177,11 @@ Uint8List synthesizeMusicWav({int sampleRate = kMusicSampleRate}) {
   }
   return _encodePcm(mix, sampleRate);
 }
+
+/// 后台合成背景音乐，避免启动后第一帧被二十秒的循环渲染拖慢。
+Future<Uint8List> synthesizeMusicWavAsync({
+  int sampleRate = kMusicSampleRate,
+}) => runAudioTask(() => synthesizeMusicWav(sampleRate: sampleRate));
 
 /// 把 [-1,1] 的浮点混音编码为 16 位单声道 WAV。
 Uint8List _encodePcm(Float64List mix, int sampleRate) {

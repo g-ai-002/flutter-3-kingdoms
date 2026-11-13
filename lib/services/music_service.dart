@@ -57,7 +57,7 @@ class MusicService {
       if (!soloud.isInitialized) await soloud.init();
       _source ??= await soloud.loadMem(
         'sanguo-bgm.wav',
-        synthesizeMusicWav(),
+        await synthesizeMusicWavAsync(),
       );
     } catch (error) {
       _failed = true;

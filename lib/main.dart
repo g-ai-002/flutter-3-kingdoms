@@ -29,9 +29,19 @@ Future<void> main() async {
 
   final storage = await StorageService.instance;
   LogService.info('应用启动: ${AppConstants.appName} v${AppConstants.version}');
-  unawaited(SoundService.init());
   MusicService.enabled = storage.musicEnabled;
-  if (storage.musicEnabled && !kIsWeb) unawaited(MusicService.start());
 
   runApp(SanguoApp(storage: storage));
+
+  // 首页首帧渲染完再准备音频：合成已移到后台 isolate，这里只负责错峰启动。
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(_warmUpAudio(storage));
+  });
+}
+
+Future<void> _warmUpAudio(StorageService storage) async {
+  await Future<void>.delayed(const Duration(milliseconds: 600));
+  await SoundService.init();
+  MusicService.enabled = storage.musicEnabled;
+  if (storage.musicEnabled && !kIsWeb) unawaited(MusicService.start());
 }
