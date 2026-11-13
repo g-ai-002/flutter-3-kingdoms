@@ -50,6 +50,11 @@ class GameController extends ChangeNotifier {
   String? _selectedCityId;
   BattlePending? _pending;
   BattleSetup? _setup;
+  int _revision = 0;
+
+  /// 游戏数据的修改序号：仅在内政、任命、出征、结算等真正改数据时推进。
+  /// 选中城池只影响界面高亮，不会让地图的静态图层失效。
+  int get revision => _revision;
 
   String? get selectedCityId => _selectedCityId;
 
@@ -61,6 +66,12 @@ class GameController extends ChangeNotifier {
   BattlePending? get pendingBattle => _pending;
 
   bool get finished => state.finished;
+
+  /// 数据变更入口：推进修订号再通知界面与地图。
+  void _notifyChanged() {
+    _revision++;
+    notifyListeners();
+  }
 
   void selectCity(String? id) {
     if (_selectedCityId == id) return;
@@ -83,7 +94,7 @@ class GameController extends ChangeNotifier {
       return const OrderResult(success: false, message: '并非本方城池');
     }
     final result = OrderService.apply(state, city, action, _random);
-    if (result.success) notifyListeners();
+    if (result.success) _notifyChanged();
     return result;
   }
 
@@ -128,7 +139,7 @@ class GameController extends ChangeNotifier {
       return const OrderResult(success: false, message: '并非本方城池');
     }
     final result = OrderService.recruit(state, city, general, _random);
-    if (result.success) notifyListeners();
+    if (result.success) _notifyChanged();
     return result;
   }
 
@@ -136,7 +147,7 @@ class GameController extends ChangeNotifier {
     final city = selectedCity;
     if (city == null) return;
     OrderService.appointGovernor(city, generalId);
-    notifyListeners();
+    _notifyChanged();
   }
 
   /// 玩家发起攻城战：校验相邻关系与兵力后先扣兵，再交给战斗页。
@@ -187,7 +198,7 @@ class GameController extends ChangeNotifier {
       troops: troops,
     );
     _setup = setup;
-    notifyListeners();
+    _notifyChanged();
     return (setup: setup, error: null);
   }
 
@@ -227,7 +238,7 @@ class GameController extends ChangeNotifier {
         ChronicleKind.battle,
         factionId: source.owner,
       );
-      notifyListeners();
+      _notifyChanged();
       return;
     }
     _applyBattleResult(
@@ -241,7 +252,7 @@ class GameController extends ChangeNotifier {
     _pending = null;
     _setup = null;
     _checkVictory();
-    notifyListeners();
+    _notifyChanged();
   }
 
   /// 结束本月：AI 先后行动，再统一结算钱粮、随机事件并推进月份。
@@ -253,7 +264,7 @@ class GameController extends ChangeNotifier {
     _advanceMonth();
     _checkVictory();
     _selectedCityId = null;
-    notifyListeners();
+    _notifyChanged();
   }
 
   /// 组装双方战力快照，供玩家战斗页与 AI 自动结算共用。
@@ -525,10 +536,9 @@ class GameController extends ChangeNotifier {
       final multiplier = def.id == state.playerFaction
           ? state.difficulty.playerIncome
           : state.difficulty.aiIncome;
-      faction.gold += (state.goldIncomeOf(def.id) * multiplier).round();
-      faction.food +=
-          (state.foodIncomeOf(def.id) * multiplier).round() -
-          state.upkeepOf(def.id);
+      final economy = state.economyOf(def.id);
+      faction.gold += (economy.gold * multiplier).round();
+      faction.food += (economy.food * multiplier).round() - economy.upkeep;
       if (faction.food < 0) _applyStarvation(def, faction);
     }
     _refreshAlive();

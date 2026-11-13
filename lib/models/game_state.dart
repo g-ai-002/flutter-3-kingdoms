@@ -57,27 +57,45 @@ class GameState {
     (general) => general.factionId == factionId && !general.free,
   );
 
-  int cityCount(String factionId) =>
-      cities.values.where((city) => city.owner == factionId).length;
+  int cityCount(String factionId) {
+    var count = 0;
+    for (final city in cities.values) {
+      if (city.owner == factionId) count++;
+    }
+    return count;
+  }
 
-  int troopsOf(String factionId) => citiesOf(
-    factionId,
-  ).fold<int>(0, (sum, city) => sum + city.troops);
+  int troopsOf(String factionId) {
+    var total = 0;
+    for (final city in cities.values) {
+      if (city.owner == factionId) total += city.troops;
+    }
+    return total;
+  }
+
+  /// 势力每月的金、粮收入与粮草消耗，一次遍历算齐，
+  /// 避免结算时对同一批城池反复扫描。
+  ({int gold, int food, int upkeep}) economyOf(String factionId) {
+    var gold = 0;
+    var food = 0;
+    var upkeep = 0;
+    for (final city in cities.values) {
+      if (city.owner != factionId) continue;
+      gold += city.goldIncome;
+      food += city.foodIncome;
+      upkeep += city.foodUpkeep;
+    }
+    return (gold: gold, food: food, upkeep: upkeep);
+  }
 
   /// 势力每月金钱收入，逐城累加。
-  int goldIncomeOf(String factionId) => citiesOf(
-    factionId,
-  ).fold<int>(0, (sum, city) => sum + city.goldIncome);
+  int goldIncomeOf(String factionId) => economyOf(factionId).gold;
 
   /// 势力每月粮草收入，逐城累加。
-  int foodIncomeOf(String factionId) => citiesOf(
-    factionId,
-  ).fold<int>(0, (sum, city) => sum + city.foodIncome);
+  int foodIncomeOf(String factionId) => economyOf(factionId).food;
 
   /// 势力每月粮草消耗，逐城累加。
-  int upkeepOf(String factionId) => citiesOf(
-    factionId,
-  ).fold<int>(0, (sum, city) => sum + city.foodUpkeep);
+  int upkeepOf(String factionId) => economyOf(factionId).upkeep;
 
   int get totalCities => cities.length;
 
