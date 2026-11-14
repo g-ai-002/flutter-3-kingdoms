@@ -7,7 +7,6 @@ import '../models/chronicle.dart';
 import '../models/city.dart';
 import '../models/difficulty.dart';
 import '../models/diplomacy.dart';
-import '../models/faction.dart';
 import '../models/game_state.dart';
 import '../models/general.dart';
 import 'ai.dart';
@@ -18,6 +17,7 @@ import 'diplomacy.dart';
 import 'events/month_events.dart';
 import 'order_result.dart';
 import 'orders.dart';
+import 'turn.dart';
 
 /// 玩家发起的一场战斗：源城、目标城、主将与出兵数。
 class BattlePending {
@@ -155,7 +155,7 @@ class GameController extends ChangeNotifier {
     }
     final goldBefore = state.player.gold;
     final result = DiplomacyService.attempt(state, targetId, move, _random);
-    if (result.success) _checkVictory();
+    if (result.success) TurnService.checkVictory(state);
     if (result.success || state.player.gold != goldBefore) _notifyChanged();
     return result;
   }
@@ -249,18 +249,18 @@ class GameController extends ChangeNotifier {
     );
     _pending = null;
     _setup = null;
-    _checkVictory();
+    TurnService.checkVictory(state);
     _notifyChanged();
   }
 
   /// 结束本月：AI 先后行动，再统一结算钱粮、随机事件并推进月份。
   void endTurn() {
     if (finished) return;
-    _runAiTurn();
-    _settleMonth();
+    AiService.runTurn(state, _random);
+    TurnService.settle(state);
     MonthEvents.roll(state, _random);
-    _advanceMonth();
-    _checkVictory();
+    TurnService.advance(state);
+    TurnService.checkVictory(state);
     selection.value = null;
     _notifyChanged();
   }
@@ -280,81 +280,6 @@ class GameController extends ChangeNotifier {
     troops: troops,
     attackerFaction: attackerFaction,
   );
-
-  // ======================== AI ========================
-
-  void _runAiTurn() => AiService.runTurn(state, _random);
-
-  // ======================== 月度结算 ========================
-
-  void _settleMonth() {
-    for (final def in FactionDefs.all) {
-      final faction = state.factions[def.id]!;
-      if (!state.hasCities(def.id)) {
-        faction.alive = false;
-        continue;
-      }
-      final multiplier = def.id == state.playerFaction
-          ? state.difficulty.playerIncome
-          : state.difficulty.aiIncome;
-      final economy = state.economyOf(def.id);
-      faction.gold += (economy.gold * multiplier).round();
-      faction.food += (economy.food * multiplier).round() - economy.upkeep;
-      if (faction.food < 0) _applyStarvation(def, faction);
-    }
-    state.syncAlive();
-  }
-
-  /// 粮草见底：各城按兵力比例逃散，治安同步下滑。
-  void _applyStarvation(FactionDef def, FactionState faction) {
-    faction.food = 0;
-    var starved = 0;
-    for (final city in state.citiesOf(def.id)) {
-      final loss = max(30, (city.troops * 0.08).round());
-      starved += min(city.troops, loss);
-      city.troops = max(0, city.troops - loss);
-      city.order = max(10, city.order - 4);
-    }
-    state.addChronicle(
-      '${def.name} 军粮草告罄，士卒逃散，折兵 $starved。',
-      ChronicleKind.event,
-    );
-  }
-
-  void _advanceMonth() {
-    state.month++;
-    if (state.month > 12) {
-      state.month = 1;
-      state.year++;
-    }
-    state.tickPacts();
-    for (final city in state.cities.values) {
-      city.acted = false;
-    }
-    state.addChronicle(
-      '${state.year}年${state.month}月，天下局势暗流涌动。',
-      ChronicleKind.system,
-    );
-  }
-
-  void _checkVictory() {
-    if (state.finished) return;
-    if (state.citiesOf(state.playerFaction).isEmpty) {
-      state.finished = true;
-      state.outcome = GameOutcome.defeat;
-      state.addChronicle(
-        '${FactionDefs.nameOf(state.playerFaction)} 失尽城池，霸业成空。',
-        ChronicleKind.system,
-      );
-    } else if (state.cityCount(state.playerFaction) == state.totalCities) {
-      state.finished = true;
-      state.outcome = GameOutcome.victory;
-      state.addChronicle(
-        '${FactionDefs.nameOf(state.playerFaction)} 一统山河，天下归心！',
-        ChronicleKind.system,
-      );
-    }
-  }
 
   @override
   void dispose() {
