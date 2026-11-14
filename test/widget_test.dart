@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:flutter_3_kingdoms/game/data/scenario.dart';
 import 'package:flutter_3_kingdoms/game/game_controller.dart';
 import 'package:flutter_3_kingdoms/pages/home_page.dart';
 import 'package:flutter_3_kingdoms/pages/settings_page.dart';
@@ -42,6 +43,44 @@ void main() {
     await tester.tap(find.text('刘备 · 蜀'));
     await tester.pump();
     expect(find.text('以 刘备 之名起兵'), findsOneWidget);
+  });
+
+  testWidgets('首页可切换剧本与开局钱粮', (tester) async {
+    final settings = await _settings();
+    tester.view.physicalSize = const Size(1200, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(_app(settings, const HomePage()));
+    await tester.pump();
+
+    expect(find.text('群雄割据'), findsWidgets);
+    await tester.tap(find.text('官渡对峙'));
+    await tester.pumpAndSettle();
+    expect(settings.scenario.id, 'guandu');
+    expect(find.text('剧本 · 200年2月'), findsOneWidget);
+    expect(find.text('6 城'), findsOneWidget);
+
+    await tester.tap(find.text('丰饶'));
+    await tester.pumpAndSettle();
+    expect(settings.supply, StartSupply.rich);
+    expect(find.text('金 2160'), findsOneWidget);
+  });
+
+  testWidgets('窄屏首页开局设定不溢出', (tester) async {
+    final settings = await _settings();
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(_app(settings, const HomePage()));
+    await tester.pump();
+
+    expect(find.text('剧本 · 196年1月'), findsOneWidget);
+    await tester.ensureVisible(find.text('三分天下'));
+    await tester.tap(find.text('三分天下'));
+    await tester.pumpAndSettle();
+    expect(find.text('剧本 · 220年4月'), findsOneWidget);
   });
 
   testWidgets('设置页可切换深色模式与逻辑刷新率', (tester) async {

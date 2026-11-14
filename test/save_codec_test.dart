@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:flutter_3_kingdoms/game/data/scenario.dart';
 import 'package:flutter_3_kingdoms/game/game_controller.dart';
 import 'package:flutter_3_kingdoms/game/save_codec.dart';
 import 'package:flutter_3_kingdoms/models/chronicle.dart';
@@ -71,6 +72,36 @@ void main() {
         controller.game.freeGeneralsIn(luoyang).map((general) => general.id),
         contains('zhangliao'),
       );
+    });
+
+    test('剧本与开局年月随存档往返', () {
+      final controller = GameController(
+        factionId: 'wu',
+        scenarioId: 'guandu',
+        seed: 9,
+      );
+      controller.endTurn();
+      final restored = SaveCodec.decode(SaveCodec.encode(controller.game));
+      expect(restored.scenarioId, 'guandu');
+      expect(restored.startYear, 200);
+      expect(restored.startMonth, 2);
+      expect(restored.month, 3);
+      expect(restored.elapsedMonths, 1);
+      expect(restored.cities['xinye']!.owner, 'shu');
+
+      final summary = SaveCodec.summary(SaveCodec.encode(controller.game));
+      expect(summary.scenarioId, 'guandu');
+      expect(summary.label, contains('官渡对峙'));
+    });
+
+    test('旧存档缺少剧本字段时回落到默认剧本', () {
+      final source = SaveCodec.encode(
+        GameController(factionId: 'wei', seed: 5).game,
+      ).replaceFirst('"scenario":"qunxiong",', '');
+      final restored = SaveCodec.decode(source);
+      expect(restored.scenarioId, Scenario.defaultScenarioId);
+      expect(restored.startYear, 196);
+      expect(restored.startMonth, 1);
     });
   });
 }
