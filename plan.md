@@ -49,18 +49,20 @@
 
 ### v0.4.1 (PATCH) — 2026-11-14
 
-- **目标**: 重构 0.4.0 的增量代码，把面板开合、提示文字、存读档槽位与规则结算各归一处；玩法与数值不变，为下一版腾出代码预算。
+- **状态**: Android / Windows / Web 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.4.1)）
+- **目标**: 重构 0.4.0 的增量代码，把面板开合、提示文字、存读档槽位与规则结算各归一处；玩法与数值不变，结构更清晰、代码量仍在预算内。
 - **任务**:
   - [x] 面板开合统一 `showGameSheet`：拖动条、滚动控制与高面板比例集中一处，六个面板不再各写一遍 `showModalBottomSheet`
   - [x] 存读档合并为一套槽位列表 `_SavesSheet`：写入与读取共用加载、空槽、忙碌与失败提示
   - [x] 提示文字收敛为 `HintText`：`SheetLabel` / `EmptyHint` 两套同构实现合一，`hintStyle` 支持字号、颜色与行高
   - [x] 首页与势力面板改用 `hintStyle`，删除各自重复的 `labelSmall + onSurfaceVariant` 样式
   - [x] 城池紧凑卡改用 `InfoChip.plain`，删除 `_metric` 图标行重复实现
-  - [x] AI 决策迁入 `AiService`：出征、内政、登用与成算从控制器抽出，控制器只保留玩家指令与回合编排
+  - [x] AI 决策迁入 `AiService`：出征、内政与登用从控制器抽出，控制器只保留玩家指令与回合编排
   - [x] 战斗落账迁入 `CampaignService`：扣兵、夺城、俘将、残兵回城与战报写回共用一套口径
-  - [x] 新增面板骨架、提示文字、紧凑卡、AI 回合与战报落账测试，113 项测试通过
-  - [x] `flutter analyze` 无问题；lib 代码 9634 行，低于 10000 行上限
-  - [x] 构建流水线与 Release 产物见发布记录
+  - [x] 新增面板开合、提示文字、紧凑卡、读档槽位、AI 回合与战报落账测试，108 项测试通过
+  - [x] `flutter analyze` 无问题；lib 代码 9963 行，低于 10000 行上限
+  - [x] 构建流水线：Dart 测试、Android、Windows、Web 与 Pages 任务全部通过，Web 站点已发布到 `tea-pages/v0.4.1`
+  - [x] Release：Android APK、Windows ZIP 与 Web ZIP 三端产物已上传，Windows runner 本次在线
 
 ### v0.4.0 (MINOR) — 2026-11-14
 
