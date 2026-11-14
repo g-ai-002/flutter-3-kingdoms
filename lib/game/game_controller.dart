@@ -50,7 +50,10 @@ class GameController extends ChangeNotifier {
 
   GameState get game => state;
 
-  String? _selectedCityId;
+  /// 选中通道：点选城池只影响高亮与城池卡片，与数据通知分开，
+  /// 势力卡与顶栏不必跟着重建。地图点击本身负责唤醒渲染。
+  final ValueNotifier<String?> selection = ValueNotifier<String?>(null);
+
   BattlePending? _pending;
   BattleSetup? _setup;
   int _revision = 0;
@@ -59,10 +62,10 @@ class GameController extends ChangeNotifier {
   /// 选中城池只影响界面高亮，不会让地图的静态图层失效。
   int get revision => _revision;
 
-  String? get selectedCityId => _selectedCityId;
+  String? get selectedCityId => selection.value;
 
   City? get selectedCity =>
-      _selectedCityId == null ? null : state.cities[_selectedCityId];
+      selectedCityId == null ? null : state.cities[selectedCityId];
 
   BattleSetup? get activeBattleSetup => _setup;
 
@@ -77,9 +80,8 @@ class GameController extends ChangeNotifier {
   }
 
   void selectCity(String? id) {
-    if (_selectedCityId == id) return;
-    _selectedCityId = id;
-    notifyListeners();
+    if (selection.value == id) return;
+    selection.value = id;
   }
 
   /// 本方城池可选的内政指令，已执行或资源不足时由界面置灰。
@@ -252,7 +254,7 @@ class GameController extends ChangeNotifier {
     MonthEvents.roll(state, _random);
     _advanceMonth();
     _checkVictory();
-    _selectedCityId = null;
+    selection.value = null;
     _notifyChanged();
   }
 
@@ -583,5 +585,11 @@ class GameController extends ChangeNotifier {
         ChronicleKind.system,
       );
     }
+  }
+
+  @override
+  void dispose() {
+    selection.dispose();
+    super.dispose();
   }
 }

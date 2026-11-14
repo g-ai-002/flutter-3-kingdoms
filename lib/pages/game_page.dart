@@ -34,6 +34,12 @@ class GamePage extends StatefulWidget {
 
 class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   late final SanguoGame _game;
+
+  /// 城池卡片与底部操作条跟随选中与数据两条通道；势力卡只跟随数据。
+  late final Listenable _cityChanges = Listenable.merge([
+    controller,
+    controller.selection,
+  ]);
   bool _resultShown = false;
 
   GameController get controller => widget.controller;
@@ -46,7 +52,8 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
       controller: controller,
       brightness: Brightness.light,
       logicRate: context.read<SettingsProvider>().logicRate,
-      changes: controller,
+      // 数据变更与选中变化都要唤醒地图，静置停帧后仍能立即重绘。
+      changes: _cityChanges,
     );
     controller.addListener(_onControllerChanged);
   }
@@ -54,7 +61,10 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _game.brightness = Theme.of(context).brightness;
+    _game
+      ..brightness = Theme.of(context).brightness
+      // 设置页改逻辑刷新率后，当前对局立即采用新的固定步长。
+      ..logicRate = context.watch<SettingsProvider>().logicRate;
   }
 
   @override
@@ -260,11 +270,11 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
             ),
             topEnd: _buildTools(),
             info: AnimatedBuilder(
-              animation: controller,
+              animation: _cityChanges,
               builder: (context, _) => _buildInfo(),
             ),
             controls: AnimatedBuilder(
-              animation: controller,
+              animation: _cityChanges,
               builder: (context, _) => _GameControls(
                 controller: controller,
                 onInternal: _openInternalAffairs,

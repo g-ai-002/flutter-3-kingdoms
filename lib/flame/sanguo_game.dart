@@ -10,7 +10,7 @@ class SanguoGame extends FlameGame with WidgetsBindingObserver {
   SanguoGame({
     required this.controller,
     required Brightness brightness,
-    this.logicRate = LogicRate.hz60,
+    this._logicRate = LogicRate.hz60,
     this.changes,
   }) : _brightness = ValueNotifier(brightness) {
     _brightness.addListener(_wake);
@@ -23,9 +23,9 @@ class SanguoGame extends FlameGame with WidgetsBindingObserver {
   static const double idlePulseSeconds = 2.4;
 
   final GameController controller;
-  final LogicRate logicRate;
   final Listenable? changes;
   final ValueNotifier<Brightness> _brightness;
+  LogicRate _logicRate;
   final MapIdlePolicy _idlePolicy = MapIdlePolicy(
     pulseSeconds: idlePulseSeconds,
     idleSeconds: idlePauseSeconds,
@@ -36,6 +36,13 @@ class SanguoGame extends FlameGame with WidgetsBindingObserver {
 
   Brightness get brightness => _brightness.value;
   set brightness(Brightness value) => _brightness.value = value;
+
+  /// 逻辑刷新率：设置页切换后当前对局立即生效。
+  LogicRate get logicRate => _logicRate;
+  set logicRate(LogicRate value) {
+    _logicRate = value;
+    _map?.logicRate = value;
+  }
 
   /// 对局页被全屏页或弹层覆盖时暂停渲染，避免地图在后台空转。
   void pauseForCover() {
@@ -60,7 +67,7 @@ class SanguoGame extends FlameGame with WidgetsBindingObserver {
     final map = MapComponent(
       controller: controller,
       brightness: _brightness,
-      logicRate: logicRate,
+      logicRate: _logicRate,
       onInput: _wake,
     );
     _map = map;

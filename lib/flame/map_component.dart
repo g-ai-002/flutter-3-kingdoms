@@ -18,8 +18,8 @@ import '../utils/map_layout.dart';
 
 /// Flame 战略地图：绘制城池、驿道与势力版图，处理点击与选中脉冲。
 ///
-/// 地形、驿道与城池徽记拆成三张 [ui.Picture]：地形只在主题变化时重录，
-/// 徽记只在势力、兵数或太守变化时重录，选中层只在选中城池或版图变化时重录。
+/// 地形、驿道、城池徽记与选中装饰拆成四张 [ui.Picture]：地形只在主题变化时
+/// 重录，驿道与选中装饰只随城池归属变化，徽记额外跟随兵数档位与太守。
 /// 内政、登用等不改变地图外观的指令不再触发整幅地图重绘。
 class MapComponent extends PositionComponent with TapCallbacks {
   MapComponent({
@@ -27,33 +27,33 @@ class MapComponent extends PositionComponent with TapCallbacks {
     required this.brightness,
     this.onInput,
     LogicRate logicRate = LogicRate.hz60,
-  }) : _stepper = FixedStepClock(logicRate.step);
+  }) : _logicRate = logicRate,
+       _stepper = FixedStepClock(logicRate.step);
 
   final GameController controller;
   final ValueListenable<Brightness> brightness;
   final VoidCallback? onInput;
-  final FixedStepClock _stepper;
+  FixedStepClock _stepper;
+  LogicRate _logicRate;
 
   double _time = 0;
 
-  ui.Picture? _terrainLayer;
-  Brightness? _terrainBrightness;
-  int _terrainBuilds = 0;
+  /// 逻辑更新速率，对局中切换后按新的固定步长推进动画。
+  LogicRate get logicRate => _logicRate;
+  set logicRate(LogicRate value) {
+    if (value == _logicRate) return;
+    _logicRate = value;
+    _stepper = FixedStepClock(value.step);
+  }
 
-  ui.Picture? _badgeLayer;
-  int _badgeSignature = -1;
-  double _badgeBoost = 0;
-  Brightness? _badgeBrightness;
-  int _badgeBuilds = 0;
-
-  ui.Picture? _selectionLayer;
-  int _selectionSignature = -1;
-  String? _selectionCityId;
-  Brightness? _selectionBrightness;
-  int _selectionBuilds = 0;
+  final _terrain = _CachedLayer();
+  final _roads = _CachedLayer();
+  final _badges = _CachedLayer();
+  final _selection = _CachedLayer();
 
   int _checkedRevision = -1;
   int _visualSignature = 0;
+  int _ownerSignature = 0;
 
   final Map<String, TextPainter> _namePainters = {};
   final Map<String, TextPainter> _troopPainters = {};
@@ -68,13 +68,17 @@ class MapComponent extends PositionComponent with TapCallbacks {
 
   /// 各图层累计重新录制的次数，供性能测试断言缓存命中。
   @visibleForTesting
-  int get terrainLayerBuilds => _terrainBuilds;
-
+  int get terrainLayerBuilds => _terrain.builds;
   @visibleForTesting
-  int get badgeLayerBuilds => _badgeBuilds;
-
+  int get roadLayerBuilds => _roads.builds;
   @visibleForTesting
-  int get selectionLayerBuilds => _selectionBuilds;
+  int get badgeLayerBuilds => _badges.builds;
+  @visibleForTesting
+  int get selectionLayerBuilds => _selection.builds;
+
+  /// 逻辑时钟累计的动画时间，供帧率切换测试断言。
+  @visibleForTesting
+  double get animationTime => _time;
 
   @override
   void onRemove() {
@@ -83,17 +87,10 @@ class MapComponent extends PositionComponent with TapCallbacks {
   }
 
   void _disposeLayers() {
-    _terrainLayer?.dispose();
-    _terrainLayer = null;
-    _terrainBrightness = null;
-    _badgeLayer?.dispose();
-    _badgeLayer = null;
-    _badgeSignature = -1;
-    _checkedRevision = -1;
-    _selectionLayer?.dispose();
-    _selectionLayer = null;
-    _selectionSignature = -1;
-    _selectionCityId = null;
+    _terrain.dispose();
+    _roads.dispose();
+    _badges.dispose();
+    _selection.dispose();
   }
 
   @override
@@ -109,10 +106,29 @@ class MapComponent extends PositionComponent with TapCallbacks {
     if (size.x <= 0 || size.y <= 0) return;
     final scale = _scale;
     _syncTextMetrics(scale);
+    _refreshSignatures();
     canvas.save();
     canvas.scale(scale, scale);
-    canvas.drawPicture(_terrainPicture());
-    canvas.drawPicture(_badgePicture());
+    canvas.drawPicture(
+      _terrain.take(0, brightness.value, (layer) {
+        paintMapBackground(
+          layer,
+          kMapDesignSize,
+          _palette,
+          fontFamily: kIsWeb ? kWebFontFamily : null,
+        );
+      }),
+    );
+    canvas.drawPicture(
+      _roads.take(_ownerSignature, brightness.value, _drawRoads),
+    );
+    canvas.drawPicture(
+      _badges.take(
+        Object.hash(_visualSignature, _labelBoost),
+        brightness.value,
+        _drawCities,
+      ),
+    );
     _drawSelection(canvas);
     canvas.restore();
   }
@@ -133,61 +149,25 @@ class MapComponent extends PositionComponent with TapCallbacks {
     _troopPainters.clear();
   }
 
-  ui.Picture _terrainPicture() {
-    final cached = _terrainLayer;
-    if (cached != null && _terrainBrightness == brightness.value) return cached;
-    _terrainLayer?.dispose();
-    final recorder = ui.PictureRecorder();
-    paintMapBackground(
-      Canvas(recorder),
-      kMapDesignSize,
-      _palette,
-      fontFamily: kIsWeb ? kWebFontFamily : null,
-    );
-    _terrainLayer = recorder.endRecording();
-    _terrainBrightness = brightness.value;
-    _terrainBuilds++;
-    return _terrainLayer!;
-  }
-
-  ui.Picture _badgePicture() {
-    final signature = _signature();
-    final cached = _badgeLayer;
-    if (cached != null &&
-        _badgeSignature == signature &&
-        _badgeBoost == _labelBoost &&
-        _badgeBrightness == brightness.value) {
-      return cached;
-    }
-    _badgeLayer?.dispose();
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    _drawRoads(canvas);
-    _drawCities(canvas);
-    _badgeLayer = recorder.endRecording();
-    _badgeSignature = signature;
-    _badgeBoost = _labelBoost;
-    _badgeBrightness = brightness.value;
-    _badgeBuilds++;
-    return _badgeLayer!;
-  }
-
-  /// 地图外观签名：势力、兵数档位与太守。数值内政不改变徽记，无需重录。
-  int _signature() {
+  /// 地图签名：归属签名只看谁是城主，视觉签名还看兵数档位与太守。
+  /// 修订号未变时两个签名都不必重算，避免每帧遍历城池。
+  void _refreshSignatures() {
     final revision = controller.revision;
-    if (_checkedRevision == revision) return _visualSignature;
+    if (_checkedRevision == revision) return;
     _checkedRevision = revision;
-    var hash = 17;
+    var owner = 23;
+    var visual = 17;
     for (final city in controller.game.cities.values) {
-      hash = Object.hash(
-        hash,
+      owner = Object.hash(owner, city.owner);
+      visual = Object.hash(
+        visual,
         city.owner,
         _troopBucket(city.troops),
         city.governor,
       );
     }
-    _visualSignature = hash;
-    return hash;
+    _ownerSignature = owner;
+    _visualSignature = visual;
   }
 
   /// 兵数标签只显示到 0.1 万 / 0.1 千，同一档位内的变化不必重录徽记。
@@ -229,22 +209,17 @@ class MapComponent extends PositionComponent with TapCallbacks {
   void _drawSelection(Canvas canvas) {
     final selected = controller.selectedCity;
     if (selected == null) return;
-    canvas.drawPicture(_selectionPicture(selected));
+    canvas.drawPicture(
+      _selection.take(
+        Object.hash(_ownerSignature, selected.id),
+        brightness.value,
+        (layer) => _paintSelection(layer, selected),
+      ),
+    );
     if (pulseActive) _drawPulse(canvas, selected.position);
   }
 
-  ui.Picture _selectionPicture(City selected) {
-    final signature = _signature();
-    final cached = _selectionLayer;
-    if (cached != null &&
-        _selectionCityId == selected.id &&
-        _selectionSignature == signature &&
-        _selectionBrightness == brightness.value) {
-      return cached;
-    }
-    _selectionLayer?.dispose();
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
+  void _paintSelection(Canvas canvas, City selected) {
     final palette = _palette;
     final isPlayer = selected.owner == controller.game.playerFaction;
     for (final neighborId in selected.neighbors) {
@@ -272,12 +247,6 @@ class MapComponent extends PositionComponent with TapCallbacks {
         _drawRing(canvas, target.position, alpha: 0.55, strokeWidth: 2.2);
       }
     }
-    _selectionLayer = recorder.endRecording();
-    _selectionCityId = selected.id;
-    _selectionSignature = signature;
-    _selectionBrightness = brightness.value;
-    _selectionBuilds++;
-    return _selectionLayer!;
   }
 
   void _drawRing(
@@ -454,5 +423,39 @@ class MapComponent extends PositionComponent with TapCallbacks {
     final before = controller.selectedCityId;
     controller.selectCity(hit);
     if (controller.selectedCityId != before) SoundService.tap();
+  }
+}
+
+/// 按签名与主题缓存的静态图层：签名不变时直接复用上一张 [ui.Picture]。
+class _CachedLayer {
+  ui.Picture? _picture;
+  int _signature = -1;
+  Brightness? _brightness;
+  int builds = 0;
+
+  ui.Picture take(
+    int signature,
+    Brightness brightness,
+    void Function(Canvas canvas) paint,
+  ) {
+    final cached = _picture;
+    if (cached != null &&
+        _signature == signature &&
+        _brightness == brightness) {
+      return cached;
+    }
+    cached?.dispose();
+    final recorder = ui.PictureRecorder();
+    paint(Canvas(recorder));
+    _signature = signature;
+    _brightness = brightness;
+    builds++;
+    return _picture = recorder.endRecording();
+  }
+
+  void dispose() {
+    _picture?.dispose();
+    _picture = null;
+    _signature = -1;
   }
 }

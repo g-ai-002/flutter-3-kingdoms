@@ -69,7 +69,7 @@ class SettingsPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '地图与战斗动画的逻辑刷新率（下次对局生效）',
+                  '地图动画与选中脉冲的逻辑刷新率（对局中即时生效）',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
