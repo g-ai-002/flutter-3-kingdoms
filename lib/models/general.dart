@@ -2,31 +2,29 @@ import 'dart:math';
 
 /// 武将特长：决定战斗与内政上的倾向。
 enum GeneralTrait {
-  warrior('猛将', '冲阵斩将，攻击更锐利'),
-  strategist('谋士', '运筹帷幄，火攻与计略更见成效'),
-  commander('统帅', '统兵有方，全军战力与士气更稳'),
-  statesman('能吏', '长于政务，执行内政事半功倍'),
-  balanced('全才', '文武兼资，无所偏废');
+  warrior('猛将'),
+  strategist('谋士'),
+  commander('统帅'),
+  statesman('能吏'),
+  balanced('全才');
 
-  const GeneralTrait(this.label, this.description);
+  const GeneralTrait(this.label);
 
   final String label;
-  final String description;
 }
 
 /// 武将技能：在战场上或内政中提供额外的确定性加成。
 enum GeneralSkill {
-  none('—', '无特殊技能'),
-  divineMight('神武', '阵前冲杀，战力与单挑更胜一筹'),
-  ironWall('铁壁', '稳守坚城，守城战力显著提升'),
-  firestorm('火计', '火攻威力大增'),
-  statecraft('治世', '执行内政时效果更佳'),
-  swiftRaid('疾行', '突袭更为犀利，自损更少');
+  none('—'),
+  divineMight('神武'),
+  ironWall('铁壁'),
+  firestorm('火计'),
+  statecraft('治世'),
+  swiftRaid('疾行');
 
-  const GeneralSkill(this.label, this.description);
+  const GeneralSkill(this.label);
 
   final String label;
-  final String description;
 }
 
 /// 武将运行时状态：能力值 1-100，可在城池间调动、被登用或成为俘虏。
@@ -35,9 +33,7 @@ class General {
     required this.id, required this.name, required this.factionId,
     required this.cityId, required this.wu, required this.intel,
     required this.lead, required this.politics, required this.loyalty,
-    required this.trait,
-    this.skill = GeneralSkill.none,
-    this.xp = 0,
+    required this.trait, this.skill = GeneralSkill.none, this.xp = 0,
   });
 
   final String id, name;

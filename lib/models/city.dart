@@ -2,15 +2,14 @@ import 'dart:ui';
 
 /// 兵种：骑克弩、弩克步、步克骑；水军不参与克制，但在水乡战力大增。
 enum TroopType {
-  infantry('步兵', '结阵而战，克制骑兵'),
-  cavalry('骑兵', '冲突驰突，克制弩兵'),
-  archer('弩兵', '远射制敌，克制步兵'),
-  navy('水军', '习于舟楫，水乡战力大增');
+  infantry('步兵'),
+  cavalry('骑兵'),
+  archer('弩兵'),
+  navy('水军');
 
-  const TroopType(this.label, this.description);
+  const TroopType(this.label);
 
   final String label;
-  final String description;
 
   /// 是否克制另一兵种。
   bool counters(TroopType other) => switch (this) {
@@ -63,10 +62,8 @@ class City {
     required this.owner, required this.agriculture, required this.commerce,
     required this.order, required this.defense, required this.troops,
     required this.training, required this.population,
-    this.troopType = TroopType.infantry,
-    this.governor,
-    List<String>? generals,
-    this.acted = false,
+    this.troopType = TroopType.infantry, this.governor,
+    List<String>? generals, this.acted = false,
   }) : generalIds = generals ?? <String>[];
 
   final String id, name, region;

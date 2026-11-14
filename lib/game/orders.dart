@@ -62,17 +62,17 @@ class OrderService {
     final effects = <String, int>{};
     switch (action) {
       case CityAction.reclaim:
-        final gain = min(7, 3 + politics ~/ 40 + bonus + random.nextInt(2));
+        final gain = _gain(politics, random, 7, 3, 40, bonus);
         city.agriculture = min(100, city.agriculture + gain);
         effects['农业'] = gain;
         break;
       case CityAction.trade:
-        final gain = min(7, 3 + politics ~/ 40 + bonus + random.nextInt(2));
+        final gain = _gain(politics, random, 7, 3, 40, bonus);
         city.commerce = min(100, city.commerce + gain);
         effects['商业'] = gain;
         break;
       case CityAction.patrol:
-        final gain = min(9, 4 + politics ~/ 40 + bonus + random.nextInt(2));
+        final gain = _gain(politics, random, 9, 4, 40, bonus);
         city.order = min(100, city.order + gain);
         effects['治安'] = gain;
         break;
@@ -92,12 +92,12 @@ class OrderService {
         effects['兵力'] = gained;
         break;
       case CityAction.train:
-        final gain = min(7, 3 + lead ~/ 40 + bonus + random.nextInt(2));
+        final gain = _gain(lead, random, 7, 3, 40, bonus);
         city.training = min(100, city.training + gain);
         effects['训练'] = gain;
         break;
       case CityAction.fortify:
-        final gain = min(7, 3 + lead ~/ 50 + bonus + random.nextInt(2));
+        final gain = _gain(lead, random, 7, 3, 50, bonus);
         city.defense = min(100, city.defense + gain);
         effects['城防'] = gain;
         break;
@@ -116,6 +116,16 @@ class OrderService {
       message: '${city.name} ${action.label}完成 · $gains',
     );
   }
+
+  /// 内政增益：底数 + 主官属性 / 除数 + 特长加成 + 一点随机，封顶后返回。
+  static int _gain(
+    int stat,
+    Random random,
+    int cap,
+    int base,
+    int divisor,
+    int bonus,
+  ) => min(cap, base + stat ~/ divisor + bonus + random.nextInt(2));
 
   /// 犒赏三军：花金稳人心，全城武将忠诚同涨，不占用本月指令。
   static const int rewardCost = 200;

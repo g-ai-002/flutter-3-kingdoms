@@ -20,19 +20,11 @@ enum GameOutcome {
 /// 整局游戏状态：年月、五方钱粮、城池、武将与本方势力。
 class GameState {
   GameState({
-    required this.year,
-    required this.month,
-    required this.startYear,
-    required this.startMonth,
-    required this.scenarioId,
-    required this.factions,
-    required this.cities,
-    required this.generals,
-    required this.playerFaction,
-    required this.difficulty,
-    List<Chronicle>? chronicle,
-    this.finished = false,
-    this.outcome,
+    required this.year, required this.month, required this.startYear,
+    required this.startMonth, required this.scenarioId,
+    required this.factions, required this.cities, required this.generals,
+    required this.playerFaction, required this.difficulty,
+    List<Chronicle>? chronicle, this.finished = false, this.outcome,
   }) : chronicle = chronicle ?? <Chronicle>[];
 
   int year;

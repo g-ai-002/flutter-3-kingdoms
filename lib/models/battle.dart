@@ -24,20 +24,11 @@ enum BattleTactic {
 /// 战场一方：兵力、士气与主将。
 class BattleSide {
   BattleSide({
-    required this.factionId,
-    required this.cityId,
-    required this.cityName,
-    required this.generalName,
-    required this.lead,
-    required this.wu,
-    required this.intel,
-    required this.training,
-    required this.defense,
-    required this.troops,
-    required this.morale,
-    required this.terrain,
-    required this.attacking,
-    this.generalId,
+    required this.factionId, required this.cityId, required this.cityName,
+    required this.generalName, required this.lead, required this.wu,
+    required this.intel, required this.training, required this.defense,
+    required this.troops, required this.morale, required this.terrain,
+    required this.attacking, this.generalId,
     this.trait = GeneralTrait.balanced,
     this.skill = GeneralSkill.none,
     this.troopType = TroopType.infantry,
@@ -114,12 +105,9 @@ class BattleState {
 /// 战斗结果：由控制器写回战略地图。
 class BattleResult {
   const BattleResult({
-    required this.attackerWon,
-    required this.retreated,
-    required this.attackerRemaining,
-    required this.defenderRemaining,
-    required this.attackerLosses,
-    required this.defenderLosses,
+    required this.attackerWon, required this.retreated,
+    required this.attackerRemaining, required this.defenderRemaining,
+    required this.attackerLosses, required this.defenderLosses,
     required this.rounds,
   });
 
