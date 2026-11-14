@@ -32,17 +32,17 @@
 
 ## 下载
 
-v0.5.0（名将成长）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.5.0)
+v0.5.1（重构优化）：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.5.1)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64) | `flutter-3-kingdoms-0.5.0-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-3-kingdoms-0.5.0-windows-x86_64.zip` |
-| Web | `flutter-3-kingdoms-0.5.0-web.zip`（解压后起静态服务器） |
+| Android (arm64) | `flutter-3-kingdoms-0.5.1-android-aarch64.apk` |
+| Windows (x64, Win10+) | `flutter-3-kingdoms-0.5.1-windows-x86_64.zip` |
+| Web | `flutter-3-kingdoms-0.5.1-web.zip`（解压后起静态服务器） |
 
-在线试玩：下载 Release 中的 Web 产物解压后起静态服务器；站点同时推送到 `tea-pages` 分支的 `v0.5.0/` 目录，可由静态托管服务直接发布。
+在线试玩：下载 Release 中的 Web 产物解压后起静态服务器；站点同时推送到 `tea-pages` 分支的 `v0.5.1/` 目录，可由静态托管服务直接发布。
 
-上一版本 v0.4.2（性能与流畅度优化）：[Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.4.2)
+上一版本 v0.5.0（名将成长）：[Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.5.0)
 
 ## 开发
 
