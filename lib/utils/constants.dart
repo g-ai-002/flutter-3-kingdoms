@@ -15,7 +15,7 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = '三国霸业';
-  static const String version = '0.3.1';
+  static const String version = '0.3.2';
 
   /// 开局年份：建安元年（196 年）。
   static const int startYear = 196;
