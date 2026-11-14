@@ -8,6 +8,9 @@ import 'package:flutter_3_kingdoms/flame/map_component.dart';
 import 'package:flutter_3_kingdoms/flame/sanguo_game.dart';
 import 'package:flutter_3_kingdoms/game/game_controller.dart';
 import 'package:flutter_3_kingdoms/game/orders.dart';
+import 'package:flutter_3_kingdoms/game/save_codec.dart';
+import 'package:flutter_3_kingdoms/models/chronicle.dart';
+import 'package:flutter_3_kingdoms/models/game_state.dart';
 import 'package:flutter_3_kingdoms/services/tone_synth.dart';
 import 'package:flutter_3_kingdoms/utils/logic_rate.dart';
 
@@ -50,6 +53,29 @@ void main() {
     expect(controller.revision, beforeTurn + 1);
   });
 
+  test('选中城池只走选中通道，数据变更才通知控制器', () {
+    final controller = GameController(factionId: 'wei', seed: 5);
+    addTearDown(controller.dispose);
+    var dataEvents = 0;
+    var selectionEvents = 0;
+    controller.addListener(() => dataEvents++);
+    controller.selection.addListener(() => selectionEvents++);
+
+    controller.selectCity('xuchang');
+    expect(selectionEvents, 1);
+    expect(dataEvents, 0);
+    controller.selectCity('xuchang');
+    expect(selectionEvents, 1);
+
+    expect(controller.issueOrder(CityAction.reclaim).success, isTrue);
+    expect(dataEvents, 1);
+    expect(controller.revision, 1);
+
+    controller.endTurn();
+    expect(dataEvents, 2);
+    expect(controller.selectedCityId, isNull);
+  });
+
   testWidgets('弹层覆盖按层数暂停与恢复地图引擎', (tester) async {
     final game = SanguoGame(
       controller: GameController(factionId: 'wei', seed: 2),
@@ -77,47 +103,99 @@ void main() {
 
     map.render(canvas);
     expect(map.terrainLayerBuilds, 1);
+    expect(map.roadLayerBuilds, 1);
     expect(map.badgeLayerBuilds, 1);
     expect(map.selectionLayerBuilds, 0);
 
     map.render(canvas);
     expect(map.terrainLayerBuilds, 1);
+    expect(map.roadLayerBuilds, 1);
     expect(map.badgeLayerBuilds, 1);
 
     controller.selectCity('xuchang');
     map.render(canvas);
-    expect(map.terrainLayerBuilds, 1);
+    expect(map.roadLayerBuilds, 1);
     expect(map.badgeLayerBuilds, 1);
     expect(map.selectionLayerBuilds, 1);
 
-    // 招商只改商业与钱粮，地图外观未变，三个图层都不重录。
-    expect(controller.issueOrder(CityAction.trade).success, isTrue);
+    // 征兵只改兵数：徽记按兵数档位重录，驿道与选中装饰不受影响。
+    final before = controller.game.cities['xuchang']!.troops;
+    expect(controller.issueOrder(CityAction.recruit).success, isTrue);
+    expect(controller.game.cities['xuchang']!.troops, greaterThan(before));
     map.render(canvas);
-    expect(map.terrainLayerBuilds, 1);
-    expect(map.badgeLayerBuilds, 1);
+    expect(map.roadLayerBuilds, 1);
+    expect(map.badgeLayerBuilds, 2);
     expect(map.selectionLayerBuilds, 1);
 
-    // 换太守会改变徽记上的金印，徽记与选中层一起重录。
+    // 换太守会改变徽记上的金印，但驿道与选中层只跟归属，无需重录。
     controller.appointGovernor('xunyu');
     map.render(canvas);
-    expect(map.terrainLayerBuilds, 1);
-    expect(map.badgeLayerBuilds, 2);
-    expect(map.selectionLayerBuilds, 2);
+    expect(map.roadLayerBuilds, 1);
+    expect(map.badgeLayerBuilds, 3);
+    expect(map.selectionLayerBuilds, 1);
 
     // 换选中城池只重录选中层。
     controller.selectCity('puyang');
     map.render(canvas);
-    expect(map.badgeLayerBuilds, 2);
+    expect(map.roadLayerBuilds, 1);
+    expect(map.badgeLayerBuilds, 3);
+    expect(map.selectionLayerBuilds, 2);
+
+    // 城池易主同时改变驿道配色、徽记与选中层的可进攻目标环。
+    controller.game.cities['pingyuan']!.owner = 'wei';
+    expect(controller.issueOrder(CityAction.trade).success, isTrue);
+    map.render(canvas);
+    expect(map.roadLayerBuilds, 2);
+    expect(map.badgeLayerBuilds, 4);
     expect(map.selectionLayerBuilds, 3);
 
-    // 主题切换才重录地形。
+    // 主题切换才重录地形，其余三层跟着换色。
     brightness.value = Brightness.dark;
     map.render(canvas);
     expect(map.terrainLayerBuilds, 2);
-    expect(map.badgeLayerBuilds, 3);
+    expect(map.roadLayerBuilds, 3);
+    expect(map.badgeLayerBuilds, 5);
     expect(map.selectionLayerBuilds, 4);
 
     recorder.endRecording().dispose();
+  });
+
+  test('战报在内存中封顶，存档只写最近的尾部', () {
+    final game = GameController(factionId: 'wei', seed: 2).game;
+    for (var i = 0; i < 1000; i++) {
+      game.addChronicle('第 $i 月军报', ChronicleKind.system);
+    }
+    expect(
+      game.chronicle.length,
+      lessThanOrEqualTo(GameState.chronicleLimit * 2),
+    );
+    expect(game.chronicle.last.text, '第 999 月军报');
+    expect(game.recentChronicle.length, GameState.chronicleLimit);
+
+    final restored = SaveCodec.decode(SaveCodec.encode(game));
+    expect(restored.chronicle.length, GameState.chronicleLimit);
+    expect(restored.chronicle.last.text, '第 999 月军报');
+  });
+
+  test('切换逻辑帧率后地图按新的固定步长推进动画', () {
+    final controller = GameController(factionId: 'wei', seed: 3);
+    final brightness = ValueNotifier(Brightness.light);
+    addTearDown(brightness.dispose);
+    final map = MapComponent(
+      controller: controller,
+      brightness: brightness,
+      logicRate: LogicRate.hz30,
+    )..size = Vector2(1200, 760);
+
+    map.update(1 / 60);
+    expect(map.animationTime, 0);
+    map.update(1 / 60);
+    expect(map.animationTime, closeTo(1 / 30, 1e-9));
+
+    // 对局中切到 120Hz，步长立即变细，累积时间继续推进。
+    map.logicRate = LogicRate.hz120;
+    map.update(1 / 120);
+    expect(map.animationTime, closeTo(1 / 30 + 1 / 120, 1e-9));
   });
 
   test('选中脉冲播完后停帧，点击或数据变化重新唤醒', () {
