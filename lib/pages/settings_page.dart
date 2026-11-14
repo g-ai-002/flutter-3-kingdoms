@@ -169,10 +169,7 @@ class _LogSection extends StatelessWidget {
     if (path.isEmpty) return;
     final opened = await FileSystemService.instance.openDirectory(path);
     if (!context.mounted) return;
-    if (!opened) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('日志目录：$path')));
-    }
+    if (!opened) showToast(context, '日志目录：$path');
   }
 
   @override
@@ -209,9 +206,7 @@ class _LogSection extends StatelessWidget {
                 onPressed: () {
                   final text = LogService.getRecentLogs(80).join('\n');
                   Clipboard.setData(ClipboardData(text: text));
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('最近 80 条日志已复制')));
+                  showToast(context, '最近 80 条日志已复制');
                 },
                 icon: const Icon(Icons.copy_all_outlined, size: 17),
                 label: const Text('复制日志'),

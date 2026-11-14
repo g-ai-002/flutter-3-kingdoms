@@ -269,26 +269,17 @@ class _BattlePageState extends State<BattlePage> {
   Widget _buildTactics() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final count = BattleTactic.values.length;
-          final width = (constraints.maxWidth - 8 * (count - 1)) / count;
-          return Row(
-            children: [
-              for (final tactic in BattleTactic.values) ...[
-                SizedBox(
-                  width: width,
-                  child: BattleTacticButton(
-                    tactic: tactic,
-                    onPressed: () => _fight(tactic),
-                  ),
-                ),
-                if (tactic != BattleTactic.values.last)
-                  const SizedBox(width: 8),
-              ],
-            ],
-          );
-        },
+      child: Row(
+        spacing: 8,
+        children: [
+          for (final tactic in BattleTactic.values)
+            Expanded(
+              child: BattleTacticButton(
+                tactic: tactic,
+                onPressed: () => _fight(tactic),
+              ),
+            ),
+        ],
       ),
     );
   }

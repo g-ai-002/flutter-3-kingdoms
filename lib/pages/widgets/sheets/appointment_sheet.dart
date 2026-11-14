@@ -24,9 +24,7 @@ Future<void> showAppointmentSheet(
         final free = game.freeGeneralsIn(city);
         void run(OrderResult result) {
           setSheetState(() {});
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(content: Text(result.message)));
+          showToast(context, result.message);
         }
 
         return SheetFrame(
@@ -107,11 +105,8 @@ Future<void> showAppointmentSheet(
 /// 武将行：名称、特长与技能，[career] 时另列等级、称号与忠诚。
 class _GeneralTile extends StatelessWidget {
   const _GeneralTile({
-    required this.general,
-    required this.leading,
-    required this.trailing,
-    this.career = false,
-    this.onTap,
+    required this.general, required this.leading, required this.trailing,
+    this.career = false, this.onTap,
   });
 
   final General general;

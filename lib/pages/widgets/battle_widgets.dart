@@ -9,9 +9,7 @@ import 'common.dart';
 /// 攻城战双方营寨：兵力、士气、训练、城防与主将技能。
 class BattleCampCard extends StatelessWidget {
   const BattleCampCard({
-    super.key,
-    required this.side,
-    required this.label,
+    super.key, required this.side, required this.label,
     required this.alignEnd,
   });
 
@@ -186,9 +184,7 @@ class BattleRoundBadge extends StatelessWidget {
 /// 战术按钮：强攻、固守、火攻、突袭与撤退。
 class BattleTacticButton extends StatelessWidget {
   const BattleTacticButton({
-    super.key,
-    required this.tactic,
-    required this.onPressed,
+    super.key, required this.tactic, required this.onPressed,
   });
 
   final BattleTactic tactic;
@@ -234,9 +230,7 @@ class BattleTacticButton extends StatelessWidget {
 /// 战果浮层：胜负标题、伤亡与入城按钮。
 class BattleResultOverlay extends StatelessWidget {
   const BattleResultOverlay({
-    super.key,
-    required this.state,
-    required this.onDone,
+    super.key, required this.state, required this.onDone,
   });
 
   final BattleState state;
@@ -290,27 +284,18 @@ class BattleResultOverlay extends StatelessWidget {
               const SizedBox(height: 14),
               Row(
                 children: [
-                  Expanded(
-                    child: _ResultStat(
-                      label: '我军折损',
-                      value: '${attacker.losses}',
-                      color: appRed,
+                  for (final stat in [
+                    ('我军折损', '${attacker.losses}', appRed),
+                    ('敌军折损', '${defender.losses}', theme.colorScheme.tertiary),
+                    ('交战回合', '${state.round}', theme.colorScheme.onSurfaceVariant),
+                  ])
+                    Expanded(
+                      child: _ResultStat(
+                        label: stat.$1,
+                        value: stat.$2,
+                        color: stat.$3,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: _ResultStat(
-                      label: '敌军折损',
-                      value: '${defender.losses}',
-                      color: theme.colorScheme.tertiary,
-                    ),
-                  ),
-                  Expanded(
-                    child: _ResultStat(
-                      label: '交战回合',
-                      value: '${state.round}',
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -331,9 +316,7 @@ class BattleResultOverlay extends StatelessWidget {
 
 class _ResultStat extends StatelessWidget {
   const _ResultStat({
-    required this.label,
-    required this.value,
-    required this.color,
+    required this.label, required this.value, required this.color,
   });
 
   final String label;

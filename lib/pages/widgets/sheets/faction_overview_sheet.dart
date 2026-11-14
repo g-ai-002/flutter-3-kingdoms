@@ -112,18 +112,13 @@ Future<void> _openEnvoyDialog(
   final result = controller.attemptDiplomacy(def.id, move);
   if (!context.mounted) return;
   refresh(() {});
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(result.message)));
+  showToast(context, result.message);
 }
 
 class _MoveButton extends StatelessWidget {
   const _MoveButton({
-    required this.move,
-    required this.gold,
-    required this.chance,
-    required this.blocked,
-    required this.blockedLabel,
+    required this.move, required this.gold, required this.chance,
+    required this.blocked, required this.blockedLabel,
     required this.onPressed,
   });
 
@@ -182,12 +177,8 @@ class _MoveButton extends StatelessWidget {
 
 class _FactionRow extends StatelessWidget {
   const _FactionRow({
-    required this.def,
-    required this.faction,
-    required this.tally,
-    required this.isPlayer,
-    required this.pactMonths,
-    required this.onEnvoy,
+    required this.def, required this.faction, required this.tally,
+    required this.isPlayer, required this.pactMonths, required this.onEnvoy,
   });
 
   final FactionDef def;
@@ -210,14 +201,14 @@ class _FactionRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 9),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isPlayer ? const Color(0xFFC8A15A) : colors.outline,
-          ),
+        decoration: cardDecoration(
+          context,
+          radius: 12,
+          shadow: false,
           color: isPlayer
               ? colors.primaryContainer.withValues(alpha: 0.35)
               : colors.surface,
+          borderColor: isPlayer ? const Color(0xFFC8A15A) : colors.outline,
         ),
         child: Row(
           children: [

@@ -17,6 +17,61 @@ TextStyle? hintStyle(
   );
 }
 
+/// 轻提示：新提示顶掉旧提示，对局、面板与设置页表现一致。
+void showToast(BuildContext context, String text) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(text)));
+}
+
+/// 面板列表项与卡片的统一描边：细边圆角，可覆盖强调色与线宽。
+ShapeBorder outlinedShape(
+  BuildContext context, {
+  double radius = 12,
+  Color? color,
+  double width = 1,
+}) {
+  return RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(radius),
+    side: BorderSide(
+      color: color ?? Theme.of(context).colorScheme.outline,
+      width: width,
+    ),
+  );
+}
+
+/// 顶栏紧凑图标按钮：首页与对局工具条共用尺寸与点击区。
+class HudIconButton extends StatelessWidget {
+  const HudIconButton({
+    super.key, required this.icon, required this.tooltip,
+    required this.onPressed, this.size = 20, this.box = 48,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final double size;
+  final double box;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: box,
+      height: box,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon, size: size),
+        padding: EdgeInsets.zero,
+        style: IconButton.styleFrom(
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
+    );
+  }
+}
+
 /// 底部面板统一开合：拖动条、滚动控制与高面板比例都在这里决定。
 Future<T?> showGameSheet<T>(
   BuildContext context, {
@@ -41,13 +96,16 @@ BoxDecoration cardDecoration(
   BuildContext context, {
   double radius = 16,
   Color? color,
+  Color? borderColor,
   bool shadow = true,
 }) {
   final colors = Theme.of(context).colorScheme;
   return BoxDecoration(
     color: color ?? colors.surface,
     borderRadius: BorderRadius.circular(radius),
-    border: Border.all(color: colors.outline.withValues(alpha: 0.9)),
+    border: Border.all(
+      color: borderColor ?? colors.outline.withValues(alpha: 0.9),
+    ),
     boxShadow: shadow
         ? [
             BoxShadow(
@@ -108,11 +166,8 @@ class FactionSeal extends StatelessWidget {
 /// 数值条：城池的农业、商业、治安、训练与城防。
 class StatBar extends StatelessWidget {
   const StatBar({
-    super.key,
-    required this.label,
-    required this.value,
-    this.color,
-    this.compact = false,
+    super.key, required this.label, required this.value,
+    this.color, this.compact = false,
   });
 
   final String label;
@@ -168,12 +223,8 @@ class StatBar extends StatelessWidget {
 /// 带标题的卡片容器，统一内边距与标题样式。
 class SectionCard extends StatelessWidget {
   const SectionCard({
-    super.key,
-    this.title,
-    this.trailing,
-    required this.child,
-    this.padding = const EdgeInsets.fromLTRB(14, 12, 14, 14),
-    this.color,
+    super.key, this.title, this.trailing, required this.child,
+    this.padding = const EdgeInsets.fromLTRB(14, 12, 14, 14), this.color,
   });
 
   final String? title;
@@ -232,12 +283,8 @@ class SectionCard extends StatelessWidget {
 /// 小标签：资源、兵种与状态提示；[plain] 时只留图标与文字，不进胶囊底色。
 class InfoChip extends StatelessWidget {
   const InfoChip({
-    super.key,
-    required this.text,
-    this.icon,
-    this.color,
-    this.dense = false,
-    this.plain = false,
+    super.key, required this.text, this.icon, this.color,
+    this.dense = false, this.plain = false,
   });
 
   final String text;
@@ -306,10 +353,7 @@ class TitleOrnament extends StatelessWidget {
 /// 面板标题行：主标题、可选副标题与右侧附属信息。
 class SheetHeader extends StatelessWidget {
   const SheetHeader({
-    super.key,
-    required this.title,
-    this.subtitle,
-    this.trailing,
+    super.key, required this.title, this.subtitle, this.trailing,
   });
 
   final String title;
@@ -347,13 +391,8 @@ class SheetHeader extends StatelessWidget {
 /// 底部面板骨架：安全区、统一内边距与标题，内容可选滚动。
 class SheetFrame extends StatelessWidget {
   const SheetFrame({
-    super.key,
-    required this.title,
-    required this.child,
-    this.subtitle,
-    this.trailing,
-    this.scrollable = false,
-    this.gap = 0,
+    super.key, required this.title, required this.child, this.subtitle,
+    this.trailing, this.scrollable = false, this.gap = 0,
     this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 12),
   });
 
@@ -390,11 +429,7 @@ class SheetFrame extends StatelessWidget {
 /// 面板内的提示小字：分区小标题用默认样式，空状态正文用 [body]。
 class HintText extends StatelessWidget {
   const HintText(
-    this.text, {
-    super.key,
-    this.body = false,
-    this.center = false,
-  });
+    this.text, {super.key, this.body = false, this.center = false});
 
   final String text;
   final bool body;

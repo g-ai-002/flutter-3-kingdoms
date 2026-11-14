@@ -63,8 +63,7 @@ class _HomePageState extends State<HomePage> {
     final state = await SaveService.loadState(SaveService.autoKey);
     if (!mounted) return;
     if (state == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('自动存档已失效')));
+      showToast(context, '自动存档已失效');
       await _refreshAutoSave();
       return;
     }
@@ -276,10 +275,7 @@ class _AutoSaveBanner extends StatelessWidget {
     final colors = theme.colorScheme;
     return Material(
       color: colors.primaryContainer.withValues(alpha: 0.45),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: Color(0xFFC8A15A)),
-      ),
+      shape: outlinedShape(context, radius: 14, color: const Color(0xFFC8A15A)),
       child: InkWell(
         onTap: onContinue,
         borderRadius: BorderRadius.circular(14),

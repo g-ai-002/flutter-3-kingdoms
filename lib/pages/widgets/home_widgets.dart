@@ -12,11 +12,8 @@ import 'map_preview.dart';
 /// 首页顶栏：印记、标题与主题 / 说明 / 设置入口。
 class HomeTopBar extends StatelessWidget {
   const HomeTopBar({
-    super.key,
-    required this.darkMode,
-    required this.onToggleDark,
-    required this.onHelp,
-    required this.onSettings,
+    super.key, required this.darkMode, required this.onToggleDark,
+    required this.onHelp, required this.onSettings,
   });
 
   final bool darkMode;
@@ -83,11 +80,45 @@ class HomeTopBar extends StatelessWidget {
   }
 
   Widget _tool(IconData icon, String tooltip, VoidCallback onPressed) =>
-      IconButton(
+      HudIconButton(
+        icon: icon,
         tooltip: tooltip,
         onPressed: onPressed,
-        icon: Icon(icon, size: 21),
+        size: 21,
+        box: 48,
       );
+}
+
+/// 首页的分段选择器：剧本、开局钱粮与难度共用按钮样式与点按音效。
+class SegmentedPicker<T> extends StatelessWidget {
+  const SegmentedPicker({
+    super.key,
+    required this.options,
+    required this.labelOf,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final List<T> options;
+  final String Function(T option) labelOf;
+  final T value;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<T>(
+      showSelectedIcon: false,
+      segments: [
+        for (final option in options)
+          ButtonSegment(value: option, label: Text(labelOf(option))),
+      ],
+      selected: {value},
+      onSelectionChanged: (items) {
+        SoundService.tap();
+        onChanged(items.first);
+      },
+    );
+  }
 }
 
 /// 首页主视觉：地图缩略图、标题与副标题。
@@ -150,12 +181,8 @@ class HomeHero extends StatelessWidget {
 /// 势力选择卡：君主、名号、箴言与初始城池武将数。
 class FactionPickCard extends StatelessWidget {
   const FactionPickCard({
-    super.key,
-    required this.def,
-    required this.selected,
-    required this.scenarioId,
-    required this.gold,
-    required this.onTap,
+    super.key, required this.def, required this.selected,
+    required this.scenarioId, required this.gold, required this.onTap,
   });
 
   final FactionDef def;
@@ -177,12 +204,11 @@ class FactionPickCard extends StatelessWidget {
       color: selected
           ? colors.primaryContainer.withValues(alpha: 0.55)
           : colors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: selected ? const Color(0xFFC8A15A) : colors.outline,
-          width: selected ? 1.6 : 1,
-        ),
+      shape: outlinedShape(
+        context,
+        radius: 14,
+        color: selected ? const Color(0xFFC8A15A) : null,
+        width: selected ? 1.6 : 1,
       ),
       child: InkWell(
         onTap: onTap,
@@ -253,11 +279,8 @@ class FactionPickCard extends StatelessWidget {
 /// 开局设定：剧本与开局钱粮，两项合起来即自定义开局。
 class StartOptions extends StatelessWidget {
   const StartOptions({
-    super.key,
-    required this.scenario,
-    required this.supply,
-    required this.onScenario,
-    required this.onSupply,
+    super.key, required this.scenario, required this.supply,
+    required this.onScenario, required this.onSupply,
   });
 
   final ScenarioDef scenario;
@@ -286,32 +309,20 @@ class StartOptions extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 7),
-        SegmentedButton<String>(
-          showSelectedIcon: false,
-          segments: [
-            for (final item in Scenario.scenarios)
-              ButtonSegment(value: item.id, label: Text(item.name)),
-          ],
-          selected: {scenario.id},
-          onSelectionChanged: (ids) {
-            SoundService.tap();
-            onScenario(ids.first);
-          },
+        SegmentedPicker<String>(
+          options: [for (final item in Scenario.scenarios) item.id],
+          labelOf: (id) => Scenario.byId(id).name,
+          value: scenario.id,
+          onChanged: onScenario,
         ),
         const SizedBox(height: 5),
         Text(scenario.summary, style: hint),
         const SizedBox(height: 9),
-        SegmentedButton<StartSupply>(
-          showSelectedIcon: false,
-          segments: [
-            for (final item in StartSupply.values)
-              ButtonSegment(value: item, label: Text(item.label)),
-          ],
-          selected: {supply},
-          onSelectionChanged: (items) {
-            SoundService.tap();
-            onSupply(items.first);
-          },
+        SegmentedPicker<StartSupply>(
+          options: StartSupply.values,
+          labelOf: (item) => item.label,
+          value: supply,
+          onChanged: onSupply,
         ),
         const SizedBox(height: 4),
         Text('${supply.summary}，只影响本方开局', style: hint),
@@ -323,9 +334,7 @@ class StartOptions extends StatelessWidget {
 /// 难度选择：三档分段切换，附当前难度说明。
 class DifficultyPicker extends StatelessWidget {
   const DifficultyPicker({
-    super.key,
-    required this.value,
-    required this.onChanged,
+    super.key, required this.value, required this.onChanged,
   });
 
   final Difficulty value;
@@ -359,17 +368,11 @@ class DifficultyPicker extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 7),
-        SegmentedButton<Difficulty>(
-          showSelectedIcon: false,
-          segments: [
-            for (final item in Difficulty.values)
-              ButtonSegment(value: item, label: Text(item.label)),
-          ],
-          selected: {value},
-          onSelectionChanged: (items) {
-            SoundService.tap();
-            onChanged(items.first);
-          },
+        SegmentedPicker<Difficulty>(
+          options: Difficulty.values,
+          labelOf: (item) => item.label,
+          value: value,
+          onChanged: onChanged,
         ),
       ],
     );

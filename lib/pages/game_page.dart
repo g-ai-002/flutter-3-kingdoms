@@ -12,14 +12,13 @@ import '../models/faction.dart';
 import '../providers/settings_provider.dart';
 import '../services/save_service.dart';
 import '../services/sound_service.dart';
-import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../utils/map_display_mode.dart';
 import 'battle_page.dart';
 import 'help_page.dart';
 import 'settings_page.dart';
-import 'widgets/city_info_card.dart';
 import 'widgets/common.dart';
+import 'widgets/game_hud.dart';
 import 'widgets/game_sheets.dart';
 import 'widgets/map_hud.dart';
 
@@ -158,13 +157,6 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     );
   }
 
-  void _message(String text) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(text)));
-  }
-
   /// 全屏页与弹层期间暂停地图渲染，关闭后按前后台状态恢复。
   Future<T> _withMapPaused<T>(Future<T> Function() action) async {
     _game.pauseForCover();
@@ -183,7 +175,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     if (action == null || !mounted) return;
     final result = controller.issueOrder(action);
     SoundService.play(result.success ? GameSound.order : GameSound.tap);
-    _message(result.message);
+    showToast(context, result.message);
   }
 
   Future<void> _openCampaign(City source, {City? preferred}) {
@@ -204,7 +196,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
       );
       final setup = prepared.setup;
       if (setup == null) {
-        _message(prepared.error ?? '无法出征');
+        showToast(context, prepared.error ?? '无法出征');
         return;
       }
       final result = await Navigator.of(context).push<BattleResult?>(
@@ -230,7 +222,8 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     unawaited(_autosave());
     SoundService.play(GameSound.turn);
     final player = controller.game.player;
-    _message(
+    showToast(
+      context,
       '${formatYearMonth(controller.game.year, controller.game.month)} · '
       '金 ${player.gold} · 粮 ${player.food}',
     );
@@ -271,16 +264,22 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
             map: _buildMap(),
             topStart: AnimatedBuilder(
               animation: controller,
-              builder: (context, _) => _FactionHudCard(controller: controller),
+              builder: (context, _) => GameFactionCard(controller: controller),
             ),
-            topEnd: _buildTools(),
+            topEnd: GameTopTools(
+              onSave: () => unawaited(
+                _withMapPaused(() => showSaveSheet(context, controller)),
+              ),
+              onHelp: () => _push(const HelpPage()),
+              onSettings: () => _push(const SettingsPage()),
+            ),
             info: AnimatedBuilder(
               animation: _cityChanges,
-              builder: (context, _) => _buildInfo(),
+              builder: (context, _) => GameInfoPanel(controller: controller),
             ),
             controls: AnimatedBuilder(
               animation: _cityChanges,
-              builder: (context, _) => _GameControls(
+              builder: (context, _) => GameControls(
                 controller: controller,
                 onInternal: _openInternalAffairs,
                 onCampaign: (source, {preferred}) =>
@@ -305,10 +304,11 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   }
 
   Widget _buildMap() {
+    final radius = BorderRadius.circular(18);
     return RepaintBoundary(
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: radius,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
@@ -318,7 +318,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: radius,
           child: GameWidget<SanguoGame>(
             key: const ValueKey('sanguo-map'),
             game: _game,
@@ -326,289 +326,5 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
         ),
       ),
     );
-  }
-
-  Widget _buildInfo() {
-    final city = controller.selectedCity;
-    if (city == null) {
-      return Builder(
-        builder: (ctx) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.touch_app_outlined,
-              size: 15,
-              color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text(
-                HudScope.compactOf(ctx) ? '点选城池' : '点选城池查看详情；选中本方城池后可下令',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: hintStyle(ctx),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    return Builder(
-      builder: (ctx) => CityInfoCard(
-        controller: controller,
-        city: city,
-        compact: HudScope.compactOf(ctx),
-      ),
-    );
-  }
-
-  Widget _buildTools() {
-    return Wrap(
-      spacing: 0,
-      runSpacing: 0,
-      children: [
-        _tool(
-          Icons.save_outlined,
-          '存档',
-          () => unawaited(
-            _withMapPaused(() => showSaveSheet(context, controller)),
-          ),
-        ),
-        _tool(Icons.menu_book_outlined, '玩法说明', () => _push(const HelpPage())),
-        _tool(Icons.settings_outlined, '设置', () => _push(const SettingsPage())),
-      ],
-    );
-  }
-
-  Widget _tool(IconData icon, String tooltip, VoidCallback onTap) {
-    // 顶栏只放存档、说明与设置，势力 / 战报已由底部操作条承担。
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onTap,
-      icon: Icon(icon, size: 18),
-      padding: EdgeInsets.zero,
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints.tightFor(width: 28, height: 28),
-    );
-  }
-}
-
-/// 左上角：势力印、年月与钱粮兵力。
-class _FactionHudCard extends StatelessWidget {
-  const _FactionHudCard({required this.controller});
-
-  final GameController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final game = controller.game;
-    final faction = game.player;
-    final def = FactionDefs.byId(game.playerFaction);
-    final compact = HudScope.compactOf(context);
-    final hint = hintStyle(context, size: compact ? 9.5 : 10);
-    final identity = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          def.display,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontSize: compact ? 12.5 : 13,
-          ),
-        ),
-        Text(
-          formatYearMonth(game.year, game.month),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: hint,
-        ),
-        // 侧栏可能只有一百多像素宽：紧凑模式把钱粮并进第二三行，不另起标签。
-        if (compact)
-          Text(
-            '金 ${faction.gold} · 粮 ${faction.food}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: hint,
-          ),
-      ],
-    );
-    final seal = FactionSeal(
-      factionId: game.playerFaction,
-      size: compact ? 26 : 30,
-    );
-    if (compact) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          seal,
-          const SizedBox(width: 7),
-          Flexible(child: identity),
-        ],
-      );
-    }
-    return Wrap(
-      spacing: 6,
-      runSpacing: 4,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [seal, const SizedBox(width: 8), identity],
-        ),
-        InfoChip(
-          text: '城 ${game.tallyOf(game.playerFaction).cities}',
-          dense: true,
-          color: def.color,
-        ),
-        InfoChip(text: '金 ${faction.gold}', dense: true, color: appGold),
-        InfoChip(text: '粮 ${faction.food}', dense: true, color: appJade),
-      ],
-    );
-  }
-}
-
-/// 底部悬浮操作条：城池指令与结束回合。
-class _GameControls extends StatelessWidget {
-  const _GameControls({
-    required this.controller,
-    required this.onInternal,
-    required this.onCampaign,
-    required this.onAppoint,
-    required this.onEndTurn,
-    required this.onFactions,
-    required this.onChronicle,
-    required this.onAttackSource,
-  });
-
-  final GameController controller;
-  final ValueChanged<City> onInternal;
-  final void Function(City source, {City? preferred}) onCampaign;
-  final ValueChanged<City> onAppoint;
-  final VoidCallback onEndTurn;
-  final VoidCallback onFactions;
-  final VoidCallback onChronicle;
-  final City? Function(City target) onAttackSource;
-
-  @override
-  Widget build(BuildContext context) {
-    // 操作条按屏幕宽度决定是否只留图标：手机横屏放得下文字，竖屏与窄窗才收成图标。
-    final compact = MediaQuery.sizeOf(context).width < 480;
-    final city = controller.selectedCity;
-    final own = city != null && city.owner == controller.game.playerFaction;
-    final enemy = city != null && !own;
-    final canCampaign =
-        own && controller.game.enemyNeighbors(city).isNotEmpty && !city.acted;
-    final source = enemy ? onAttackSource(city) : null;
-    final canAttack = enemy && source != null;
-    final locked = controller.finished;
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 4,
-      runSpacing: 4,
-      children: [
-        if (own) ...[
-          _action(
-            context,
-            compact,
-            Icons.agriculture_outlined,
-            '内政',
-            locked || city.acted ? null : () => onInternal(city),
-          ),
-          _action(
-            context,
-            compact,
-            Icons.gavel_rounded,
-            '出征',
-            !locked && canCampaign ? () => onCampaign(city) : null,
-          ),
-          _action(
-            context,
-            compact,
-            Icons.groups_2_outlined,
-            '人事',
-            locked ? null : () => onAppoint(city),
-          ),
-        ],
-        if (enemy)
-          _action(
-            context,
-            compact,
-            Icons.gavel_rounded,
-            '攻打',
-            !locked && canAttack
-                ? () => onCampaign(source, preferred: city)
-                : null,
-          ),
-        _action(
-          context,
-          compact,
-          Icons.public_outlined,
-          '势力',
-          locked ? null : onFactions,
-        ),
-        _action(
-          context,
-          compact,
-          Icons.history_edu_outlined,
-          '战报',
-          onChronicle,
-        ),
-        const SizedBox(width: 6),
-        FilledButton.icon(
-          onPressed: controller.finished ? null : onEndTurn,
-          icon: const Icon(Icons.skip_next_rounded, size: 18),
-          label: Text(compact ? '结束' : '结束本月'),
-          style: FilledButton.styleFrom(
-            minimumSize: Size(compact ? 74 : 108, 42),
-            padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 16),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _action(
-    BuildContext context,
-    bool compact,
-    IconData icon,
-    String label,
-    VoidCallback? onPressed,
-  ) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final enabled = onPressed != null;
-    final button = TextButton(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        minimumSize: Size(compact ? 38 : 54, compact ? 38 : 42),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        padding: EdgeInsets.symmetric(
-          horizontal: compact ? 2 : 4,
-          vertical: compact ? 0 : 2,
-        ),
-        foregroundColor: enabled ? colors.onSurface : colors.onSurfaceVariant,
-      ),
-      child: compact
-          ? Icon(icon, size: 20)
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 19),
-                const SizedBox(height: 1),
-                Text(
-                  label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 10,
-                    color: enabled ? colors.onSurface : colors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-    );
-    return compact ? Tooltip(message: label, child: button) : button;
   }
 }

@@ -55,7 +55,7 @@ class _SavesSheetState extends State<_SavesSheet> {
     );
     await _load();
     if (!mounted) return;
-    _toast(ok ? '已存入槽位 ${index + 1}' : '存档写入失败');
+    showToast(context, ok ? '已存入槽位 ${index + 1}' : '存档写入失败');
   }
 
   Future<void> _delete(int index) async {
@@ -71,15 +71,11 @@ class _SavesSheetState extends State<_SavesSheet> {
     if (!mounted) return;
     if (state == null) {
       setState(() => _busy = false);
-      _toast('存档读取失败');
+      showToast(context, '存档读取失败');
       return;
     }
     Navigator.of(context).pop(state);
   }
-
-  void _toast(String text) => ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(text)));
 
   String _titleOf(int index) {
     if (_writing) return '槽位 ${index + 1}';
@@ -133,12 +129,8 @@ class _SavesSheetState extends State<_SavesSheet> {
 
 class _SlotRow extends StatelessWidget {
   const _SlotRow({
-    required this.title,
-    required this.summary,
-    required this.actionLabel,
-    required this.onAction,
-    this.enabled = true,
-    this.onDelete,
+    required this.title, required this.summary, required this.actionLabel,
+    required this.onAction, this.enabled = true, this.onDelete,
   });
 
   final String title;
@@ -157,10 +149,7 @@ class _SlotRow extends StatelessWidget {
       color: empty
           ? colors.surface
           : colors.primaryContainer.withValues(alpha: 0.3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: colors.outline),
-      ),
+      shape: outlinedShape(context),
       child: ListTile(
         dense: true,
         onTap: enabled ? onAction : null,
