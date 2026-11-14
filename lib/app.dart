@@ -21,6 +21,15 @@ class SanguoApp extends StatefulWidget {
 }
 
 class _SanguoAppState extends State<SanguoApp> with WidgetsBindingObserver {
+  /// 字体与两套主题只在启动时确定：设置变更不再重复构建 ThemeData。
+  late final String? _fontFamily = kIsWeb
+      ? kWebFontFamily
+      : defaultTargetPlatform == TargetPlatform.windows
+      ? 'Microsoft YaHei UI'
+      : null;
+  late final ThemeData _lightTheme = buildLightTheme(fontFamily: _fontFamily);
+  late final ThemeData _darkTheme = buildDarkTheme(fontFamily: _fontFamily);
+
   @override
   void initState() {
     super.initState();
@@ -51,22 +60,18 @@ class _SanguoAppState extends State<SanguoApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    String? fontFamily;
-    if (kIsWeb) {
-      fontFamily = kWebFontFamily;
-    } else if (defaultTargetPlatform == TargetPlatform.windows) {
-      fontFamily = 'Microsoft YaHei UI';
-    }
     return ChangeNotifierProvider(
       create: (_) => SettingsProvider(widget.storage),
-      child: Consumer<SettingsProvider>(
-        builder: (context, settings, _) {
+      // 外壳只跟随深浅色：音效、难度等设置变更不再重建整个应用。
+      child: Selector<SettingsProvider, bool>(
+        selector: (_, settings) => settings.darkMode,
+        builder: (context, darkMode, _) {
           return MaterialApp(
             title: AppConstants.appName,
             debugShowCheckedModeBanner: false,
-            theme: buildLightTheme(fontFamily: fontFamily),
-            darkTheme: buildDarkTheme(fontFamily: fontFamily),
-            themeMode: settings.darkMode ? ThemeMode.dark : ThemeMode.light,
+            theme: _lightTheme,
+            darkTheme: _darkTheme,
+            themeMode: darkMode ? ThemeMode.dark : ThemeMode.light,
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,

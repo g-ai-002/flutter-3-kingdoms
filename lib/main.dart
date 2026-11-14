@@ -24,15 +24,18 @@ Future<void> main() async {
     return true;
   };
 
-  // 窗口、日志与偏好互不依赖，并行初始化缩短首帧前的等待。
+  // 窗口尺寸需要首帧前就位；偏好读取与之并行，日志目录留到首帧之后再准备。
   final storageFuture = StorageService.instance;
-  await Future.wait([setupDesktopWindow(), initLogging()]);
+  await setupDesktopWindow();
   final storage = await storageFuture;
 
   LogService.info('应用启动: ${AppConstants.appName} v${AppConstants.version}');
   MusicService.enabled = storage.musicEnabled;
 
   runApp(SanguoApp(storage: storage));
+
+  // 初始化前的日志先进内存缓冲，日志目录就绪后自动补写。
+  unawaited(initLogging());
 
   // 首页首帧渲染完再准备音频：合成已移到后台 isolate，这里只负责错峰启动。
   WidgetsBinding.instance.addPostFrameCallback((_) {

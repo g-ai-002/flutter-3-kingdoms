@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -204,6 +205,14 @@ void _paintMountains(
   }
 }
 
+/// 州名水印的文字缓存：同一条水印只排版一次，深浅色各一份。
+/// 缓存上限为州名数 × 2，长期运行不会增长。
+final Map<int, TextPainter> _regionPainters = {};
+
+/// 已排版的州名水印数量，供性能测试断言缓存命中。
+@visibleForTesting
+int get regionPainterCount => _regionPainters.length;
+
 void _paintRegionText(
   Canvas canvas,
   MapPalette palette,
@@ -211,24 +220,25 @@ void _paintRegionText(
   Offset center,
   String? fontFamily,
 ) {
-  final painter = TextPainter(
-    text: TextSpan(
-      text: text,
-      style: TextStyle(
-        fontSize: 52,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 10,
-        color: palette.regionText.withValues(alpha: 0.16),
-        fontFamily: fontFamily ?? (kIsWeb ? kWebFontFamily : null),
-        fontFamilyFallback: kKaiFontFallback,
+  final key = Object.hash(text, palette.regionText, fontFamily);
+  final painter = _regionPainters.putIfAbsent(
+    key,
+    () => TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontSize: 52,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 10,
+          color: palette.regionText.withValues(alpha: 0.16),
+          fontFamily: fontFamily ?? (kIsWeb ? kWebFontFamily : null),
+          fontFamilyFallback: kKaiFontFallback,
+        ),
       ),
-    ),
-    textDirection: TextDirection.ltr,
-  )..layout();
-  painter.paint(
-    canvas,
-    center - Offset(painter.width / 2, painter.height / 2),
+      textDirection: TextDirection.ltr,
+    )..layout(),
   );
+  painter.paint(canvas, center - Offset(painter.width / 2, painter.height / 2));
 }
 
 /// 城池之间的连线：虚线表示驿道，选中城池时高亮可进攻路线。

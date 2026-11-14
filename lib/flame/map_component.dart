@@ -66,6 +66,9 @@ class MapComponent extends PositionComponent with TapCallbacks {
   /// 选中脉冲是否继续逐帧播放；停帧后由 [SanguoGame] 置回 true 唤醒。
   bool pulseActive = true;
 
+  /// 是否已经画出过一帧：首帧尺寸未就绪时先别停帧，避免留下空白地图。
+  bool painted = false;
+
   /// 各图层累计重新录制的次数，供性能测试断言缓存命中。
   @visibleForTesting
   int get terrainLayerBuilds => _terrain.builds;
@@ -131,6 +134,7 @@ class MapComponent extends PositionComponent with TapCallbacks {
     );
     _drawSelection(canvas);
     canvas.restore();
+    painted = true;
   }
 
   /// 小屏上地图整体缩得很小，按比例放大字面，保证城名仍可辨认。

@@ -34,6 +34,7 @@ class GamePage extends StatefulWidget {
 
 class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   late final SanguoGame _game;
+  late final SettingsProvider _settings = context.read<SettingsProvider>();
 
   /// 城池卡片与底部操作条跟随选中与数据两条通道；势力卡只跟随数据。
   late final Listenable _cityChanges = Listenable.merge([
@@ -48,23 +49,26 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // 帧率直接写到对局，不必为一条设置重建地图与 HUD。
+    _settings.addListener(_syncLogicRate);
     _game = SanguoGame(
       controller: controller,
       brightness: Brightness.light,
-      logicRate: context.read<SettingsProvider>().logicRate,
+      logicRate: _settings.logicRate,
       // 数据变更与选中变化都要唤醒地图，静置停帧后仍能立即重绘。
       changes: _cityChanges,
     );
     controller.addListener(_onControllerChanged);
   }
 
+  void _syncLogicRate() {
+    if (mounted) _game.logicRate = _settings.logicRate;
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _game
-      ..brightness = Theme.of(context).brightness
-      // 设置页改逻辑刷新率后，当前对局立即采用新的固定步长。
-      ..logicRate = context.watch<SettingsProvider>().logicRate;
+    _game.brightness = Theme.of(context).brightness;
   }
 
   @override
@@ -78,6 +82,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     controller.removeListener(_onControllerChanged);
+    _settings.removeListener(_syncLogicRate);
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_autosave());
     super.dispose();

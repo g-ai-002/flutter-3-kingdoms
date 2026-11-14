@@ -1,9 +1,12 @@
 import 'dart:ui' as ui;
 
-import 'package:flame/components.dart';
+import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:flutter_3_kingdoms/app.dart';
 import 'package:flutter_3_kingdoms/flame/map_component.dart';
 import 'package:flutter_3_kingdoms/flame/sanguo_game.dart';
 import 'package:flutter_3_kingdoms/game/game_controller.dart';
@@ -11,7 +14,13 @@ import 'package:flutter_3_kingdoms/game/orders.dart';
 import 'package:flutter_3_kingdoms/game/save_codec.dart';
 import 'package:flutter_3_kingdoms/models/chronicle.dart';
 import 'package:flutter_3_kingdoms/models/game_state.dart';
+import 'package:flutter_3_kingdoms/pages/game_page.dart';
+import 'package:flutter_3_kingdoms/pages/home_page.dart';
+import 'package:flutter_3_kingdoms/pages/widgets/map_hud.dart';
+import 'package:flutter_3_kingdoms/providers/settings_provider.dart';
+import 'package:flutter_3_kingdoms/services/storage_service.dart';
 import 'package:flutter_3_kingdoms/services/tone_synth.dart';
+import 'package:flutter_3_kingdoms/theme/map_painting.dart';
 import 'package:flutter_3_kingdoms/utils/logic_rate.dart';
 
 void main() {
@@ -106,6 +115,7 @@ void main() {
     expect(map.roadLayerBuilds, 1);
     expect(map.badgeLayerBuilds, 1);
     expect(map.selectionLayerBuilds, 0);
+    expect(map.painted, isTrue);
 
     map.render(canvas);
     expect(map.terrainLayerBuilds, 1);
@@ -198,26 +208,169 @@ void main() {
     expect(map.animationTime, closeTo(1 / 30 + 1 / 120, 1e-9));
   });
 
-  test('选中脉冲播完后停帧，点击或数据变化重新唤醒', () {
+  test('未选中城池时数据变化只重绘一帧，选中时脉冲播完即停', () {
     final policy = MapIdlePolicy();
     expect(policy.pulse, isTrue);
 
+    // 没有选中城池：唤醒后第一帧即可停帧。
+    expect(policy.tick(1 / 60, selected: false), isTrue);
+    expect(policy.pulse, isFalse);
+
+    // 选中城池：脉冲持续 pulseSeconds，期间不停帧。
+    policy.wake();
     expect(policy.tick(1.0, selected: true), isFalse);
     expect(policy.pulse, isTrue);
-    expect(policy.tick(1.5, selected: true), isFalse);
+    expect(policy.tick(1.5, selected: true), isTrue);
     expect(policy.pulse, isFalse);
-    expect(policy.tick(1.1, selected: true), isFalse);
+
+    // 脉冲结束后保持停帧，不再逐帧空转。
     expect(policy.tick(0.2, selected: true), isTrue);
-
     policy.wake();
-    expect(policy.pulse, isTrue);
-    expect(policy.tick(0.4, selected: true), isFalse);
+    expect(policy.tick(0.016, selected: true), isFalse);
+  });
 
-    // 没有选中城池时不做脉冲，直接按静置时长停帧。
-    policy.wake();
-    expect(policy.tick(0.6, selected: false), isFalse);
-    expect(policy.pulse, isFalse);
-    expect(policy.tick(0.7, selected: false), isTrue);
+  testWidgets('地图绘出首帧后停帧，选中城池时按脉冲重新唤醒', (tester) async {
+    final controller = GameController(factionId: 'wei', seed: 3);
+    final game = SanguoGame(
+      controller: controller,
+      brightness: Brightness.light,
+      changes: controller.selection,
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(GameWidget(game: game));
+    await tester.pump();
+    expect(game.paused, isFalse, reason: '首帧尚未画出地图，不能提前停帧');
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(game.paused, isTrue, reason: '静止画面绘制完即停帧');
+
+    controller.selectCity('xuchang');
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(game.paused, isFalse, reason: '选中后的脉冲仍在播放');
+
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 160));
+    }
+    expect(game.paused, isTrue, reason: '脉冲播完回到停帧');
+
+    // 数据变化再次唤醒，绘制一帧后继续停帧。
+    expect(controller.issueOrder(CityAction.reclaim).success, isTrue);
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(game.paused, isTrue);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  test('州名水印文字按主题缓存，重复绘制不再排版', () {
+    const font = 'CacheProbeFont';
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final before = regionPainterCount;
+
+    paintMapBackground(
+      canvas,
+      const Size(1200, 760),
+      MapPalette.light,
+      fontFamily: font,
+    );
+    final afterFirst = regionPainterCount;
+    expect(afterFirst, before + kRegionLabels.length);
+
+    paintMapBackground(
+      canvas,
+      const Size(1200, 760),
+      MapPalette.light,
+      fontFamily: font,
+    );
+    expect(regionPainterCount, afterFirst);
+
+    paintMapBackground(
+      canvas,
+      const Size(1200, 760),
+      MapPalette.dark,
+      fontFamily: font,
+    );
+    expect(regionPainterCount, afterFirst + kRegionLabels.length);
+    recorder.endRecording().dispose();
+  });
+
+  testWidgets('设置变更不重建应用外壳，只有深浅色切换才重建', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.resetForTests();
+    final storage = await StorageService.instance;
+    await tester.pumpWidget(SanguoApp(storage: storage));
+    await tester.pump();
+
+    final settings = Provider.of<SettingsProvider>(
+      tester.element(find.byType(HomePage)),
+      listen: false,
+    );
+    final shell = tester.widget<MaterialApp>(find.byType(MaterialApp));
+
+    // 音效、难度等设置不改变主题：外壳与 ThemeData 实例保持不变。
+    await settings.setSoundEnabled(false);
+    await tester.pump();
+    expect(
+      identical(tester.widget<MaterialApp>(find.byType(MaterialApp)), shell),
+      isTrue,
+    );
+    expect(
+      identical(
+        tester.widget<MaterialApp>(find.byType(MaterialApp)).theme,
+        shell.theme,
+      ),
+      isTrue,
+      reason: '主题对象只构建一次',
+    );
+
+    await settings.setDarkMode(true);
+    await tester.pump();
+    final dark = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(identical(dark, shell), isFalse);
+    expect(dark.themeMode, ThemeMode.dark);
+    expect(identical(dark.darkTheme, shell.darkTheme), isTrue);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('对局页不因设置重建地图与 HUD，切帧率直接写进对局', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.resetForTests();
+    final settings = SettingsProvider(await StorageService.instance);
+    final controller = GameController(factionId: 'wei', seed: 3);
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<SettingsProvider>.value(
+        value: settings,
+        child: MaterialApp(home: GamePage(controller: controller)),
+      ),
+    );
+    await tester.pump();
+    final hud = tester.widget<MapHud>(find.byType(MapHud));
+    final game = tester
+        .widget<GameWidget<SanguoGame>>(
+          find.byKey(const ValueKey('sanguo-map')),
+        )
+        .game!;
+
+    await settings.setSoundEnabled(false);
+    await tester.pump();
+    expect(identical(tester.widget<MapHud>(find.byType(MapHud)), hud), isTrue);
+
+    // 帧率变更只写到引擎，地图与 HUD 仍不重建。
+    await settings.setLogicRate(LogicRate.hz120);
+    await tester.pump();
+    expect(game.logicRate, LogicRate.hz120);
+    expect(identical(tester.widget<MapHud>(find.byType(MapHud)), hud), isTrue);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 
   test('后台合成与主线程合成的音效字节一致', () async {

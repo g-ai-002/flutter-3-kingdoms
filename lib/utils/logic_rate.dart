@@ -43,41 +43,34 @@ class FixedStepClock {
   }
 }
 
-/// 地图静置策略：选中城池后先播放 [pulseSeconds] 的脉冲，再等待
-/// [idleSeconds] 停帧；没有选中时直接按 [idleSeconds] 停帧。
+/// 地图静置策略：选中城池后先播放 [pulseSeconds] 的脉冲再停帧；没有选中时
+/// 一次数据变化只重绘一帧便停帧，静止期间不再空转渲染循环。
 class MapIdlePolicy {
-  MapIdlePolicy({this.pulseSeconds = 2.4, this.idleSeconds = 1.2});
+  MapIdlePolicy({this.pulseSeconds = 2.4});
 
   final double pulseSeconds;
-  final double idleSeconds;
   bool _pulse = true;
   double _pulseElapsed = 0;
-  double _idleElapsed = 0;
 
   bool get pulse => _pulse;
 
-  /// 重新开始脉冲与停帧计时；点击、选中与数据变化都会调用。
+  /// 重新开始脉冲计时；点击、选中与数据变化都会调用。
   void wake() {
     _pulse = true;
     _pulseElapsed = 0;
-    _idleElapsed = 0;
   }
 
-  /// 推进一帧，返回 true 表示应当停掉渲染循环。
+  /// 推进一帧，返回 true 表示本帧之后可以停帧。
   bool tick(double dt, {required bool selected}) {
-    if (dt > 0) _idleElapsed += dt;
-    if (_pulse) {
-      if (!selected) {
-        _pulse = false;
-      } else {
-        _pulseElapsed += dt;
-        if (_pulseElapsed < pulseSeconds) return false;
-        _pulse = false;
-        _pulseElapsed = 0;
-        _idleElapsed = 0;
-        return false;
-      }
+    if (!_pulse) return true;
+    if (!selected) {
+      _pulse = false;
+      return true;
     }
-    return _idleElapsed >= idleSeconds;
+    _pulseElapsed += dt;
+    if (_pulseElapsed < pulseSeconds) return false;
+    _pulse = false;
+    _pulseElapsed = 0;
+    return true;
   }
 }

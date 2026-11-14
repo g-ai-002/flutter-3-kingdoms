@@ -65,9 +65,10 @@ class SaveService {
 
   static Future<SaveSummary?> autoSummary() => summaryOf(autoKey);
 
-  static Future<List<SaveSummary?>> slotSummaries() async => [
-    for (var slot = 1; slot <= slots; slot++) await summaryOf(slotKey(slot)),
-  ];
+  /// 三个手动槽位一次并发读取，避免逐个等待平台存储往返。
+  static Future<List<SaveSummary?>> slotSummaries() => Future.wait([
+    for (var slot = 1; slot <= slots; slot++) summaryOf(slotKey(slot)),
+  ]);
 
   /// 读取并解出完整对局；存档损坏时返回 null。
   static Future<GameState?> loadState(String key) async {
