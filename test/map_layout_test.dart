@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:flutter_3_kingdoms/utils/map_display_mode.dart';
 import 'package:flutter_3_kingdoms/utils/map_layout.dart';

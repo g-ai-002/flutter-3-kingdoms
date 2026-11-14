@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 势力静态设定：名称、君主、配色、初始城池与武将。
 class FactionDef {

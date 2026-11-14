@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 战略地图的逻辑画布尺寸：所有城池坐标与道路都写在这个坐标系里。
 const Size kMapDesignSize = Size(1200, 760);
