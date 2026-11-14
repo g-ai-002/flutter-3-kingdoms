@@ -11,7 +11,7 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = '三国霸业';
-  static const String version = '0.5.0';
+  static const String version = '0.5.1';
 
   static const String prefKeyDarkMode = 'dark_mode';
   static const String prefKeySound = 'sound_enabled';
