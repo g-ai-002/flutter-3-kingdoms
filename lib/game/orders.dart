@@ -112,7 +112,6 @@ class OrderService {
     return OrderResult(
       success: true,
       message: '${city.name} ${action.label}完成 · $gains',
-      effects: effects,
     );
   }
 

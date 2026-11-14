@@ -112,7 +112,6 @@ class DiplomacyService {
       return OrderResult(
         success: true,
         message: '$targetName 举城归附 · 得城 $cities 座',
-        effects: {'归附城池': cities},
       );
     }
     state.makePact(state.playerFaction, targetId, move.months);
@@ -125,7 +124,6 @@ class DiplomacyService {
     return OrderResult(
       success: true,
       message: '$targetName 接受${move.label} · 盟约 ${move.months} 个月',
-      effects: {'盟约月数': move.months},
     );
   }
 

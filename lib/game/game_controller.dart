@@ -10,10 +10,11 @@ import '../models/diplomacy.dart';
 import '../models/faction.dart';
 import '../models/game_state.dart';
 import '../models/general.dart';
+import 'ai.dart';
 import 'battle_preview.dart';
+import 'campaign.dart';
 import 'data/scenario.dart';
 import 'diplomacy.dart';
-import 'engine/battle_engine.dart';
 import 'events/month_events.dart';
 import 'order_result.dart';
 import 'orders.dart';
@@ -183,7 +184,8 @@ class GameController extends ChangeNotifier {
       troops: troops,
       attackerFaction: source.owner,
     );
-    _commitAttack(
+    CampaignService.commitAttack(
+      state: state,
       source: source,
       target: target,
       general: general,
@@ -198,23 +200,6 @@ class GameController extends ChangeNotifier {
     _setup = setup;
     _notifyChanged();
     return (setup: setup, error: null);
-  }
-
-  /// 出兵落账：扣减兵力、占用本月指令并写一条出征战报。
-  /// 玩家战斗页与 AI 即时结算都从这里出发，避免两套扣兵逻辑走偏。
-  void _commitAttack({
-    required City source,
-    required City target,
-    required General? general,
-    required int troops,
-  }) {
-    source.troops -= troops;
-    source.acted = true;
-    state.addChronicle(
-      '${general?.name ?? '偏将'} 率 $troops 兵自 ${source.name} 出征 ${target.name}。',
-      ChronicleKind.battle,
-      factionId: source.owner,
-    );
   }
 
   /// 战斗页结束（或中途退出）后写回结果；result 为空时按撤军处理并退还兵力。
@@ -239,13 +224,14 @@ class GameController extends ChangeNotifier {
       _notifyChanged();
       return;
     }
-    _applyBattleResult(
+    CampaignService.applyResult(
+      state: state,
       source: source,
       target: target,
       general: general,
-      troops: pending.troops,
       result: result,
       attackerFaction: source.owner,
+      random: _random,
     );
     _pending = null;
     _setup = null;
@@ -272,256 +258,18 @@ class GameController extends ChangeNotifier {
     required General? attacker,
     required int troops,
     required String attackerFaction,
-  }) {
-    return BattleSetup(
-      attacker: _battleSide(
-        city: source,
-        general: attacker,
-        attacking: true,
-        factionId: attackerFaction,
-        troops: troops,
-        morale: (88 + (attacker?.lead ?? 50) / 8).clamp(70, 120).round(),
-        terrain: target.terrain,
-      ),
-      defender: _battleSide(
-        city: target,
-        general: state.defenderOf(target),
-        attacking: false,
-        factionId: target.owner,
-        troops: target.troops,
-        morale: (96 + target.defense / 10).clamp(80, 125).round(),
-        terrain: target.terrain,
-      ),
-    );
-  }
-
-  /// 战场一方：攻守两方只在默认主将、城防与任务名上不同，其余口径一致。
-  BattleSide _battleSide({
-    required City city,
-    required General? general,
-    required bool attacking,
-    required String factionId,
-    required int troops,
-    required int morale,
-    required Terrain terrain,
-  }) {
-    return BattleSide(
-      factionId: factionId,
-      cityId: city.id,
-      cityName: city.name,
-      generalId: general?.id,
-      generalName: general?.name ?? (attacking ? '偏将' : '守将'),
-      lead: general?.lead ?? (attacking ? 50 : 55),
-      wu: general?.wu ?? (attacking ? 50 : 55),
-      intel: general?.intel ?? 45,
-      training: city.training,
-      defense: attacking ? 0 : city.defense,
-      troops: troops,
-      morale: morale,
-      terrain: terrain,
-      attacking: attacking,
-      trait:
-          general?.trait ??
-          (attacking ? GeneralTrait.balanced : GeneralTrait.commander),
-      skill: general?.skill ?? GeneralSkill.none,
-      troopType: city.troopType,
-    );
-  }
-
-  /// 把战斗结果写回地图：夺城、俘虏处置与残兵回城。
-  void _applyBattleResult({
-    required City source,
-    required City target,
-    required General? general,
-    required int troops,
-    required BattleResult result,
-    required String attackerFaction,
-  }) {
-    final factionName = FactionDefs.nameOf(attackerFaction);
-    if (result.attackerWon) {
-      final defeatedFaction = target.owner;
-      final defenders = state.residentsOf(target);
-      target.owner = attackerFaction;
-      target.troops = result.attackerRemaining;
-      target.acted = true;
-      target.order = max(25, target.order - 12);
-      if (general != null) {
-        general.cityId = target.id;
-        source.generalIds.remove(general.id);
-        target.generalIds.add(general.id);
-        target.governor = general.id;
-        if (source.governor == general.id) {
-          source.governor = state.residentsOf(source).isEmpty
-              ? null
-              : (state.residentsOf(
-                  source,
-                )..sort((a, b) => b.lead.compareTo(a.lead))).first.id;
-        }
-      } else {
-        target.governor = null;
-      }
-      _resolveCaptives(target, defenders, attackerFaction);
-      state.addChronicle(
-        '$factionName 军攻破 ${target.name}，'
-        '${FactionDefs.nameOf(defeatedFaction)} 军弃城而走，'
-        '折损 ${result.defenderLosses} 人。',
-        ChronicleKind.battle,
-        factionId: attackerFaction,
-      );
-      state.syncAlive();
-      return;
-    }
-    source.troops += result.attackerRemaining;
-    target.troops = result.defenderRemaining;
-    if (general != null && general.cityId != source.id) {
-      source.generalIds.add(general.id);
-      general.cityId = source.id;
-    }
-    state.addChronicle(
-      '${target.name} 守军击退 $factionName 军，'
-      '${general?.name ?? '带队偏将'} 折损 ${result.attackerLosses} 人后退回 ${source.name}。',
-      ChronicleKind.battle,
-      factionId: target.owner,
-    );
-  }
-
-  /// 破城后的武将处置：忠义者归野，其余有几率归顺新主。
-  void _resolveCaptives(City city, List<General> captives, String winner) {
-    for (final captive in captives) {
-      final joinChance = (1 - captive.loyalty / 130).clamp(0.08, 0.55);
-      if (_random.nextDouble() < joinChance) {
-        captive.factionId = winner;
-        captive.loyalty = 55;
-        state.addChronicle(
-          '${city.name}：${captive.name} 归降 ${FactionDefs.nameOf(winner)}。',
-          ChronicleKind.event,
-          factionId: winner,
-        );
-      } else {
-        captive.factionId = freeFactionId;
-        captive.loyalty = 60;
-        state.addChronicle(
-          '${city.name}：${captive.name} 不愿屈事新主，从此归隐。',
-          ChronicleKind.event,
-          factionId: winner,
-        );
-      }
-    }
-  }
+  }) => CampaignService.setup(
+    state: state,
+    source: source,
+    target: target,
+    attacker: attacker,
+    troops: troops,
+    attackerFaction: attackerFaction,
+  );
 
   // ======================== AI ========================
 
-  void _runAiTurn() {
-    state.syncAlive();
-    for (final def in FactionDefs.all) {
-      if (def.id == state.playerFaction) continue;
-      if (!state.factions[def.id]!.alive) continue;
-      // 先议战事再理内政：出征会占用城池本月指令，发展则填满剩余城池。
-      _aiAttack(def.id);
-      _aiDevelop(def.id);
-      _aiRecruitGeneral(def.id);
-    }
-  }
-
-  /// AI 内政：缺粮开垦、缺钱招商，边城优先修城，其余资源投入兵源与训练。
-  void _aiDevelop(String factionId) {
-    final cities = state.citiesOf(factionId).toList()
-      ..sort((a, b) => b.troops.compareTo(a.troops));
-    final faction = state.factions[factionId]!;
-    final upkeep = state.upkeepOf(factionId);
-    for (final city in cities) {
-      if (city.acted) continue;
-      final action = _aiAction(faction, city, upkeep);
-      if (faction.gold < action.goldCost || faction.food < action.foodCost) {
-        continue;
-      }
-      OrderService.apply(state, city, action, _random);
-    }
-  }
-
-  CityAction _aiAction(FactionState faction, City city, int upkeep) {
-    final frontier = city.neighbors.any(
-      (id) => state.cities[id]!.owner != faction.id,
-    );
-    if (faction.food < upkeep * 3 || city.agriculture < 45) {
-      return CityAction.reclaim;
-    }
-    if (faction.gold < 500 || city.commerce < 45) return CityAction.trade;
-    if (city.order < 55) return CityAction.patrol;
-    if (frontier && city.defense < 55) return CityAction.fortify;
-    if (city.training < 65) return CityAction.train;
-    if (city.troops < city.maxTroops * 0.7) return CityAction.recruit;
-    return _random.nextBool() ? CityAction.reclaim : CityAction.train;
-  }
-
-  /// AI 也会在家门口登用在野名士，给玩家制造压力。
-  void _aiRecruitGeneral(String factionId) {
-    final faction = state.factions[factionId]!;
-    if (faction.gold < 600) return;
-    for (final city in state.citiesOf(factionId)) {
-      if (city.acted) continue;
-      final candidates = state.freeGeneralsIn(city);
-      if (candidates.isEmpty) continue;
-      if (_random.nextDouble() > 0.22) continue;
-      candidates.sort((a, b) => b.rating.compareTo(a.rating));
-      OrderService.recruit(state, city, candidates.first, _random);
-    }
-  }
-
-  /// AI 出击：挑选兵力最充足且邻敌最弱的城池，按难度阈值决定是否开战。
-  void _aiAttack(String factionId) {
-    final difficulty = state.difficulty;
-    var attempts = factionId == 'dong' || factionId == 'yuan' ? 2 : 1;
-    while (attempts-- > 0) {
-      City? bestSource;
-      City? bestTarget;
-      var bestScore = 0.0;
-      for (final city in state.citiesOf(factionId)) {
-        if (city.troops < 1800 || city.acted) continue;
-        for (final target in state.enemyNeighbors(city)) {
-          if (state.hasPact(factionId, target.owner)) continue;
-          final ratio = city.troops / max(600, target.power);
-          if (ratio < difficulty.aiAggression) continue;
-          final score =
-              ratio * 100 +
-              (100 - target.defense) +
-              (target.owner == state.playerFaction ? 18 : 0);
-          if (score > bestScore) {
-            bestScore = score;
-            bestSource = city;
-            bestTarget = target;
-          }
-        }
-      }
-      if (bestSource == null || bestTarget == null) return;
-      final leaders = state.attackLeaders(bestSource);
-      final general = leaders.isEmpty ? null : leaders.first;
-      final committed = max(500, (bestSource.troops * 0.72).round());
-      if (committed > bestSource.troops - 300) return;
-      final setup = buildSetup(
-        source: bestSource,
-        target: bestTarget,
-        attacker: general,
-        troops: committed,
-        attackerFaction: factionId,
-      );
-      _commitAttack(
-        source: bestSource,
-        target: bestTarget,
-        general: general,
-        troops: committed,
-      );
-      final result = BattleEngine.autoResolve(setup, _random);
-      _applyBattleResult(
-        source: bestSource,
-        target: bestTarget,
-        general: general,
-        troops: committed,
-        result: result,
-        attackerFaction: factionId,
-      );
-    }
-  }
+  void _runAiTurn() => AiService.runTurn(state, _random);
 
   // ======================== 月度结算 ========================
 
