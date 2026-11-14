@@ -6,6 +6,7 @@ import '../models/city.dart';
 import '../models/faction.dart';
 import '../models/game_state.dart';
 import '../models/general.dart';
+import 'growth.dart';
 
 /// 出征落账：扣兵、夺城、俘将与残兵回城共用一套口径。
 class CampaignService {
@@ -72,6 +73,7 @@ class CampaignService {
           (attacking ? GeneralTrait.balanced : GeneralTrait.commander),
       skill: general?.skill ?? GeneralSkill.none,
       troopType: city.troopType,
+      level: general?.level ?? 1,
     );
   }
 
@@ -104,6 +106,7 @@ class CampaignService {
     required Random random,
   }) {
     final factionName = FactionDefs.nameOf(attackerFaction);
+    final defender = state.defenderOf(target);
     if (result.attackerWon) {
       final defeatedFaction = target.owner;
       final defenders = state.residentsOf(target);
@@ -126,6 +129,8 @@ class CampaignService {
       } else {
         target.governor = null;
       }
+      GrowthService.award(state, general, GrowthService.captureXp);
+      GrowthService.award(state, defender, GrowthService.defeatXp);
       _resolveCaptives(state, target, defenders, attackerFaction, random);
       state.addChronicle(
         '$factionName 军攻破 ${target.name}，'
@@ -143,6 +148,8 @@ class CampaignService {
       source.generalIds.add(general.id);
       general.cityId = source.id;
     }
+    GrowthService.award(state, general, GrowthService.defeatXp);
+    GrowthService.award(state, defender, GrowthService.repelXp);
     state.addChronicle(
       '${target.name} 守军击退 $factionName 军，'
       '${general?.name ?? '带队偏将'} 折损 ${result.attackerLosses} 人后退回 ${source.name}。',

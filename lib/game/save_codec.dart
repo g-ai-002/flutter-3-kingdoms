@@ -78,7 +78,12 @@ class SaveCodec {
       },
       'generals': {
         for (final general in state.generals.values)
-          general.id: [general.factionId, general.cityId, general.loyalty],
+          general.id: [
+            general.factionId,
+            general.cityId,
+            general.loyalty,
+            general.xp,
+          ],
       },
       'pacts': state.pacts,
       'chronicle': [
@@ -174,6 +179,8 @@ class SaveCodec {
       general.factionId = row[0] as String;
       general.cityId = row[1] as String;
       general.loyalty = (row[2] as num).toInt();
+      // 旧存档没有历练字段，从一级起算。
+      if (row.length > 3) general.xp = (row[3] as num).toInt();
     }
 
     final pacts = raw['pacts'] as Map<String, dynamic>? ?? const {};

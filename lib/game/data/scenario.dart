@@ -10,82 +10,44 @@ import '../../models/general.dart';
 /// 城池静态设定：坐标、地形、相邻城池与初始状态。
 class CityDef {
   const CityDef({
-    required this.id,
-    required this.name,
-    required this.region,
-    required this.position,
-    required this.terrain,
-    required this.neighbors,
-    required this.owner,
-    required this.agriculture,
-    required this.commerce,
-    required this.order,
-    required this.defense,
-    required this.troops,
-    required this.training,
-    required this.population,
+    required this.id, required this.name, required this.region,
+    required this.position, required this.terrain, required this.neighbors,
+    required this.owner, required this.agriculture, required this.commerce,
+    required this.order, required this.defense, required this.troops,
+    required this.training, required this.population,
   });
 
-  final String id;
-  final String name;
-  final String region;
+  final String id, name, region, owner;
   final Offset position;
   final Terrain terrain;
   final List<String> neighbors;
-  final String owner;
-  final int agriculture;
-  final int commerce;
-  final int order;
-  final int defense;
-  final int troops;
-  final int training;
-  final int population;
+  final int agriculture, commerce, order, defense, troops, training, population;
 }
 
 /// 武将静态设定。
 class GeneralDef {
   const GeneralDef({
-    required this.id,
-    required this.name,
-    required this.factionId,
-    required this.cityId,
-    required this.wu,
-    required this.intel,
-    required this.lead,
-    required this.politics,
-    required this.loyalty,
+    required this.id, required this.name, required this.factionId,
+    required this.cityId, required this.wu, required this.intel,
+    required this.lead, required this.politics, required this.loyalty,
     required this.trait,
   });
 
-  final String id;
-  final String name;
-  final String factionId;
-  final String cityId;
-  final int wu;
-  final int intel;
-  final int lead;
-  final int politics;
-  final int loyalty;
+  final String id, name, factionId, cityId;
+  final int wu, intel, lead, politics, loyalty;
   final GeneralTrait trait;
 }
 
 /// 剧本：同一张天下地图的不同开局形势。
 class ScenarioDef {
   const ScenarioDef({
-    required this.id,
-    required this.name,
-    required this.year,
-    required this.month,
-    required this.summary,
-    this.transfers = const {},
-    this.troops = const {},
+    required this.id, required this.name, required this.year,
+    required this.month, required this.summary,
+    this.transfers = const {}, this.troops = const {},
   });
 
-  final String id;
-  final String name;
-  final int year;
-  final int month;
-  final String summary;
+  final String id, name, summary;
+  final int year, month;
 
   /// 城池易手表：只列出与初始归属不同的城池，未列出者沿用城池表。
   final Map<String, String> transfers;

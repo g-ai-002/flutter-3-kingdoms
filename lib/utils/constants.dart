@@ -1,11 +1,7 @@
 /// 界面共用的中文书法字体回退链：优先楷体，其次各平台常见的中文字体。
 const List<String> kKaiFontFallback = [
-  'STKaiti',
-  'KaiTi',
-  'Microsoft YaHei UI',
-  'SimSun',
-  'Noto Serif CJK SC',
-  'Noto Sans CJK SC',
+  'STKaiti', 'KaiTi', 'Microsoft YaHei UI', 'SimSun',
+  'Noto Serif CJK SC', 'Noto Sans CJK SC',
 ];
 
 /// Web 端字体：CanvasKit 没有系统中文字体回退，使用 soup_fonts 的思源黑体。
@@ -15,7 +11,7 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = '三国霸业';
-  static const String version = '0.4.2';
+  static const String version = '0.5.0';
 
   static const String prefKeyDarkMode = 'dark_mode';
   static const String prefKeySound = 'sound_enabled';

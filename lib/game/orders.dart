@@ -4,6 +4,7 @@ import '../models/chronicle.dart';
 import '../models/city.dart';
 import '../models/game_state.dart';
 import '../models/general.dart';
+import 'growth.dart';
 import 'order_result.dart';
 
 /// 城池内政指令：每城每月只能执行一条。
@@ -104,6 +105,7 @@ class OrderService {
     final gains = effects.entries
         .map((entry) => '${entry.key} +${entry.value}')
         .join('，');
+    GrowthService.award(state, governor, GrowthService.affairXp);
     state.addChronicle(
       '${city.name}：${action.label}，$gains',
       ChronicleKind.order,
@@ -112,6 +114,38 @@ class OrderService {
     return OrderResult(
       success: true,
       message: '${city.name} ${action.label}完成 · $gains',
+    );
+  }
+
+  /// 犒赏三军：花金稳人心，全城武将忠诚同涨，不占用本月指令。
+  static const int rewardCost = 200;
+  static const int rewardLoyalty = 6;
+
+  static OrderResult reward(GameState state, City city) {
+    final faction = state.factions[city.owner]!;
+    final residents = state.residentsOf(city);
+    if (residents.isEmpty) {
+      return const OrderResult(success: false, message: '城中暂无武将');
+    }
+    if (residents.every((general) => general.loyalty >= 100)) {
+      return const OrderResult(success: false, message: '众将忠心耿耿，无须再赏');
+    }
+    if (faction.gold < rewardCost) {
+      return const OrderResult(success: false, message: '金钱不足');
+    }
+    faction.gold -= rewardCost;
+    for (final general in residents) {
+      general.loyalty = min(100, general.loyalty + rewardLoyalty);
+    }
+    state.addChronicle(
+      '${city.name}：犒赏三军，众将忠诚 +$rewardLoyalty。',
+      ChronicleKind.order,
+      factionId: city.owner,
+    );
+    final lowest = residents.map((general) => general.loyalty).reduce(min);
+    return OrderResult(
+      success: true,
+      message: '赏赐已下 · 众将最低忠诚 $lowest',
     );
   }
 

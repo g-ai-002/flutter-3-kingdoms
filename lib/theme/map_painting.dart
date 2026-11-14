@@ -8,45 +8,26 @@ import '../utils/constants.dart';
 /// 地图底色：宣纸卷轴，深色模式换成夜色羊皮。
 class MapPalette {
   const MapPalette({
-    required this.parchmentTop,
-    required this.parchmentBottom,
-    required this.ink,
-    required this.road,
-    required this.river,
-    required this.mountain,
-    required this.frame,
-    required this.regionText,
+    required this.parchmentTop, required this.parchmentBottom,
+    required this.ink, required this.road, required this.river,
+    required this.mountain, required this.frame, required this.regionText,
   });
 
-  final Color parchmentTop;
-  final Color parchmentBottom;
-  final Color ink;
-  final Color road;
-  final Color river;
-  final Color mountain;
-  final Color frame;
-  final Color regionText;
+  final Color parchmentTop, parchmentBottom, ink, road;
+  final Color river, mountain, frame, regionText;
 
   static const light = MapPalette(
-    parchmentTop: Color(0xFFF7EBD2),
-    parchmentBottom: Color(0xFFE9D6B2),
-    ink: Color(0xFF3A2A1C),
-    road: Color(0xFF9C7C4F),
-    river: Color(0xFF5B7F8C),
-    mountain: Color(0xFF8A7550),
-    frame: Color(0xFFC8A15A),
-    regionText: Color(0xFF7A5C36),
+    parchmentTop: Color(0xFFF7EBD2), parchmentBottom: Color(0xFFE9D6B2),
+    ink: Color(0xFF3A2A1C), road: Color(0xFF9C7C4F),
+    river: Color(0xFF5B7F8C), mountain: Color(0xFF8A7550),
+    frame: Color(0xFFC8A15A), regionText: Color(0xFF7A5C36),
   );
 
   static const dark = MapPalette(
-    parchmentTop: Color(0xFF2C2116),
-    parchmentBottom: Color(0xFF1C150E),
-    ink: Color(0xFFEDDCBE),
-    road: Color(0xFF8A6D44),
-    river: Color(0xFF4E7280),
-    mountain: Color(0xFF6A5638),
-    frame: Color(0xFF9C7B42),
-    regionText: Color(0xFFB99A6B),
+    parchmentTop: Color(0xFF2C2116), parchmentBottom: Color(0xFF1C150E),
+    ink: Color(0xFFEDDCBE), road: Color(0xFF8A6D44),
+    river: Color(0xFF4E7280), mountain: Color(0xFF6A5638),
+    frame: Color(0xFF9C7B42), regionText: Color(0xFFB99A6B),
   );
 
   static MapPalette of(Brightness brightness) =>
@@ -55,18 +36,12 @@ class MapPalette {
 
 /// 州名水印位置，配合 [kMapDesignSize] 使用。
 const List<({String name, Offset position})> kRegionLabels = [
-  (name: '凉州', position: Offset(205, 120)),
-  (name: '雍州', position: Offset(350, 185)),
-  (name: '并州', position: Offset(470, 118)),
-  (name: '冀州', position: Offset(650, 185)),
-  (name: '幽州', position: Offset(600, 55)),
-  (name: '青州', position: Offset(765, 192)),
-  (name: '兖州', position: Offset(612, 322)),
-  (name: '豫州', position: Offset(548, 438)),
-  (name: '司隶', position: Offset(468, 255)),
-  (name: '荆州', position: Offset(548, 612)),
-  (name: '扬州', position: Offset(772, 420)),
-  (name: '益州', position: Offset(300, 472)),
+  (name: '凉州', position: Offset(205, 120)), (name: '雍州', position: Offset(350, 185)),
+  (name: '并州', position: Offset(470, 118)), (name: '冀州', position: Offset(650, 185)),
+  (name: '幽州', position: Offset(600, 55)), (name: '青州', position: Offset(765, 192)),
+  (name: '兖州', position: Offset(612, 322)), (name: '豫州', position: Offset(548, 438)),
+  (name: '司隶', position: Offset(468, 255)), (name: '荆州', position: Offset(548, 612)),
+  (name: '扬州', position: Offset(772, 420)), (name: '益州', position: Offset(300, 472)),
 ];
 
 /// 画整幅地图的底子：宣纸渐变、卷轴边框、江河、山脉与州名水印。

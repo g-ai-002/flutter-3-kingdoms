@@ -26,18 +26,8 @@ String formatTroopsCompact(int troops) {
 
 /// 农历月序：正月、二月……冬月、腊月。
 const List<String> kMonthNames = [
-  '正月',
-  '二月',
-  '三月',
-  '四月',
-  '五月',
-  '六月',
-  '七月',
-  '八月',
-  '九月',
-  '十月',
-  '冬月',
-  '腊月',
+  '正月', '二月', '三月', '四月', '五月', '六月',
+  '七月', '八月', '九月', '十月', '冬月', '腊月',
 ];
 
 String formatYearMonth(int year, int month) =>

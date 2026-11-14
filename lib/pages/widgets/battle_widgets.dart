@@ -63,10 +63,9 @@ class BattleCampCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      side.skill == GeneralSkill.none
-                          ? '${side.generalName} · 统 ${side.lead} 武 ${side.wu}'
-                          : '${side.generalName} · ${side.skill.label} · '
-                                '统 ${side.lead} 武 ${side.wu}',
+                      '${side.generalName} · Lv.${side.level}'
+                      '${side.skill == GeneralSkill.none ? '' : ' · ${side.skill.label}'}'
+                      ' · 统 ${side.lead} 武 ${side.wu}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

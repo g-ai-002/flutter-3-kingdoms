@@ -58,29 +58,18 @@ enum Terrain {
 /// 城池运行时状态。
 class City {
   City({
-    required this.id,
-    required this.name,
-    required this.region,
-    required this.position,
-    required this.terrain,
-    required this.neighbors,
-    required this.owner,
-    required this.agriculture,
-    required this.commerce,
-    required this.order,
-    required this.defense,
-    required this.troops,
-    required this.training,
-    required this.population,
+    required this.id, required this.name, required this.region,
+    required this.position, required this.terrain, required this.neighbors,
+    required this.owner, required this.agriculture, required this.commerce,
+    required this.order, required this.defense, required this.troops,
+    required this.training, required this.population,
     this.troopType = TroopType.infantry,
     this.governor,
     List<String>? generals,
     this.acted = false,
   }) : generalIds = generals ?? <String>[];
 
-  final String id;
-  final String name;
-  final String region;
+  final String id, name, region;
   final Offset position;
   final Terrain terrain;
   final List<String> neighbors;
@@ -90,12 +79,7 @@ class City {
   String? governor;
   final List<String> generalIds;
 
-  int agriculture;
-  int commerce;
-  int order;
-  int defense;
-  int troops;
-  int training;
+  int agriculture, commerce, order, defense, troops, training;
 
   /// 人口（万），决定征兵上限与部分收入。
   int population;

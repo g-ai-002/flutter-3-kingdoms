@@ -41,6 +41,7 @@ class BattleSide {
     this.trait = GeneralTrait.balanced,
     this.skill = GeneralSkill.none,
     this.troopType = TroopType.infantry,
+    this.level = 1,
   }) : initialTroops = troops;
 
   final String factionId;
@@ -58,6 +59,9 @@ class BattleSide {
   final GeneralTrait trait;
   final GeneralSkill skill;
   final TroopType troopType;
+
+  /// 主将等级：历练越深，战力越强。
+  final int level;
 
   int troops;
   int morale;

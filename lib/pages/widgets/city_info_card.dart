@@ -118,7 +118,9 @@ class CityInfoCard extends StatelessWidget {
             const SizedBox(width: 5),
             Flexible(
               child: InfoChip(
-                text: governor == null ? '无太守' : '太守 ${governor.name}',
+                text: governor == null
+                    ? '无太守'
+                    : '太守 ${governor.name} Lv.${governor.level}',
                 icon: Icons.person_outline,
                 dense: true,
               ),

@@ -212,7 +212,9 @@ class BattleEngine {
         1 + (side.defense + side.terrain.defenseBonus * 100) / 240;
     final moraleFactor = 0.62 + side.morale / 260;
     final trainFactor = 0.62 + side.training / 220;
-    final generalFactor = 0.78 + side.lead / 240 + side.wu / 700 + traitBonus;
+    final generalFactor =
+        0.78 + side.lead / 240 + side.wu / 700 + traitBonus +
+        General.bonusOf(side.level);
     final tacticFactor = switch (tactic) {
       BattleTactic.fire =>
         (1.18 + (side.intel - foe.intel) / 150).clamp(0.8, 1.7).toDouble(),

@@ -134,6 +134,20 @@ class GameController extends ChangeNotifier {
     _notifyChanged();
   }
 
+  /// 犒赏三军：花金稳住城中众将，不占用本月指令。
+  OrderResult rewardTroops() {
+    final city = selectedCity;
+    if (city == null) {
+      return const OrderResult(success: false, message: '请先选择城池');
+    }
+    if (city.owner != state.playerFaction) {
+      return const OrderResult(success: false, message: '并非本方城池');
+    }
+    final result = OrderService.reward(state, city);
+    if (result.success) _notifyChanged();
+    return result;
+  }
+
   /// 遣使交涉：金钱无论成败都会消耗，成败由使者与双方实力决定。
   OrderResult attemptDiplomacy(String targetId, DiplomaticMove move) {
     if (finished) {
