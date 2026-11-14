@@ -50,6 +50,8 @@ class _HomePageState extends State<HomePage> {
     final controller = GameController(
       factionId: _factionId,
       difficulty: settings.difficulty,
+      scenarioId: settings.scenario.id,
+      goldRatio: settings.supply.ratio,
       seed: DateTime.now().microsecondsSinceEpoch,
     );
     await SaveService.writeState(SaveService.autoKey, controller.game);
@@ -153,7 +155,7 @@ class _HomePageState extends State<HomePage> {
                               const SizedBox(width: 36),
                               SizedBox(
                                 width: 470,
-                                child: _buildFactionPanel(colors),
+                                child: _buildFactionPanel(colors, settings),
                               ),
                             ],
                           )
@@ -163,7 +165,7 @@ class _HomePageState extends State<HomePage> {
                             compact: constraints.maxWidth < 520,
                           ),
                           const SizedBox(height: 22),
-                          _buildFactionPanel(colors),
+                          _buildFactionPanel(colors, settings),
                         ],
                         const SizedBox(height: 20),
                         Text(
@@ -185,7 +187,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildFactionPanel(ColorScheme colors) {
+  Widget _buildFactionPanel(ColorScheme colors, SettingsProvider settings) {
     final theme = Theme.of(context);
     final auto = _autoSave;
     return Column(
@@ -207,6 +209,13 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         const SizedBox(height: 10),
+        StartOptions(
+          scenario: settings.scenario,
+          supply: settings.supply,
+          onScenario: (id) => settings.setScenarioId(id),
+          onSupply: (value) => settings.setSupply(value),
+        ),
+        const SizedBox(height: 14),
         Row(
           children: [
             const TitleOrnament(width: 20),
@@ -221,6 +230,8 @@ class _HomePageState extends State<HomePage> {
             child: FactionPickCard(
               def: def,
               selected: def.id == _factionId,
+              scenarioId: settings.scenario.id,
+              gold: (def.gold * settings.supply.ratio).round(),
               onTap: () {
                 SoundService.tap();
                 setState(() => _factionId = def.id);
@@ -230,9 +241,8 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(height: 4),
         DifficultyPicker(
-          value: context.watch<SettingsProvider>().difficulty,
-          onChanged: (value) =>
-              context.read<SettingsProvider>().setDifficulty(value),
+          value: settings.difficulty,
+          onChanged: (value) => settings.setDifficulty(value),
         ),
         const SizedBox(height: 14),
         FilledButton.icon(
@@ -269,43 +279,28 @@ class _AutoSaveBanner extends StatelessWidget {
     final colors = theme.colorScheme;
     return Material(
       color: colors.primaryContainer.withValues(alpha: 0.45),
-      borderRadius: BorderRadius.circular(14),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: Color(0xFFC8A15A)),
+      ),
       child: InkWell(
         onTap: onContinue,
         borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 9, 8, 9),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFC8A15A)),
+        child: ListTile(
+          leading: Icon(Icons.history_edu_outlined, color: colors.primary),
+          title: Text('继续征战', style: theme.textTheme.titleSmall),
+          subtitle: Text(
+            '自动存档 · ${summary.label}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
           ),
-          child: Row(
-            children: [
-              Icon(Icons.history_edu_outlined, size: 20, color: colors.primary),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '继续征战',
-                      style: theme.textTheme.titleSmall?.copyWith(fontSize: 13),
-                    ),
-                    Text(
-                      '自动存档 · ${summary.label}',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: '所有存档',
-                onPressed: onOpen,
-                icon: const Icon(Icons.folder_open_outlined, size: 20),
-              ),
-            ],
+          trailing: IconButton(
+            tooltip: '所有存档',
+            onPressed: onOpen,
+            icon: const Icon(Icons.folder_open_outlined, size: 20),
           ),
         ),
       ),

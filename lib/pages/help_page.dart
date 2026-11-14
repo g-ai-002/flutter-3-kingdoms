@@ -22,6 +22,7 @@ class HelpPage extends StatelessWidget {
             children: [
               _Paragraph('占据天下全部城池即可一统山河；若本方城池尽失，则霸业成空。'),
               _Paragraph('五方势力各据一方：魏（曹操）、蜀（刘备）、吴（孙权）、袁（袁绍）、董（董卓）。'),
+              _Paragraph('开局可选群雄割据、官渡对峙、三分天下三个剧本，并按俭省 / 常规 / 丰饶自定本方开局钱粮。'),
             ],
           ),
           const SizedBox(height: 12),

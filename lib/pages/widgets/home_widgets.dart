@@ -53,21 +53,24 @@ class HomeTopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 11),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(AppConstants.appName, style: theme.textTheme.titleSmall),
-            Text(
-              'THREE KINGDOMS',
-              style: TextStyle(
-                fontSize: 8,
-                letterSpacing: 1.6,
-                color: colors.onSurfaceVariant,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(AppConstants.appName, style: theme.textTheme.titleSmall),
+              Text(
+                'THREE KINGDOMS',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 8,
+                  letterSpacing: 1.6,
+                  color: colors.onSurfaceVariant,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        const Spacer(),
         _tool(
           darkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
           darkMode ? '切换浅色' : '切换深色',
@@ -150,38 +153,45 @@ class FactionPickCard extends StatelessWidget {
     super.key,
     required this.def,
     required this.selected,
+    required this.scenarioId,
+    required this.gold,
     required this.onTap,
   });
 
   final FactionDef def;
   final bool selected;
+  final String scenarioId;
+  final int gold;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final cities = Scenario.cityDefs.where((c) => c.owner == def.id).length;
+    final cities = Scenario.cityCountOf(scenarioId, def.id);
     final generals = Scenario.generalDefs
         .where((g) => g.factionId == def.id)
         .length;
+    final hint = theme.textTheme.labelSmall?.copyWith(
+      color: colors.onSurfaceVariant,
+      fontSize: 10,
+    );
     return Material(
       color: selected
           ? colors.primaryContainer.withValues(alpha: 0.55)
           : colors.surface,
-      borderRadius: BorderRadius.circular(14),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: selected ? const Color(0xFFC8A15A) : colors.outline,
+          width: selected ? 1.6 : 1,
+        ),
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        child: Container(
+        child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected ? const Color(0xFFC8A15A) : colors.outline,
-              width: selected ? 1.6 : 1,
-            ),
-          ),
           child: Row(
             children: [
               FactionSeal(factionId: def.id, size: 42),
@@ -201,16 +211,9 @@ class FactionPickCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          def.title.split(' · ').first,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: colors.onSurfaceVariant,
-                            fontSize: 10,
-                          ),
-                        ),
+                        Text(def.title.split(' · ').first, style: hint),
                       ],
                     ),
-                    const SizedBox(height: 3),
                     Text(
                       def.motto,
                       maxLines: 1,
@@ -221,22 +224,13 @@ class FactionPickCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 5),
-                    Row(
+                    Wrap(
+                      spacing: 5,
                       children: [
+                        for (final text in ['$cities 城', '$generals 将'])
+                          InfoChip(text: text, dense: true, color: def.color),
                         InfoChip(
-                          text: '$cities 城',
-                          dense: true,
-                          color: def.color,
-                        ),
-                        const SizedBox(width: 5),
-                        InfoChip(
-                          text: '$generals 将',
-                          dense: true,
-                          color: def.color,
-                        ),
-                        const SizedBox(width: 5),
-                        InfoChip(
-                          text: '金 ${def.gold}',
+                          text: '金 $gold',
                           dense: true,
                           color: colors.onSurfaceVariant,
                         ),
@@ -259,7 +253,80 @@ class FactionPickCard extends StatelessWidget {
   }
 }
 
-/// 难度选择：三档并展示星级与说明。
+/// 开局设定：剧本与开局钱粮，两项合起来即自定义开局。
+class StartOptions extends StatelessWidget {
+  const StartOptions({
+    super.key,
+    required this.scenario,
+    required this.supply,
+    required this.onScenario,
+    required this.onSupply,
+  });
+
+  final ScenarioDef scenario;
+  final StartSupply supply;
+  final ValueChanged<String> onScenario;
+  final ValueChanged<StartSupply> onSupply;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final hint = theme.textTheme.labelSmall?.copyWith(
+      color: colors.onSurfaceVariant,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.auto_stories_outlined,
+              size: 15,
+              color: colors.onSurfaceVariant,
+            ),
+            const SizedBox(width: 5),
+            Text('剧本 · ${scenario.era}', style: hint),
+            const Spacer(),
+            Text('自定开局 · 钱粮 ×${supply.ratio}', style: hint),
+          ],
+        ),
+        const SizedBox(height: 7),
+        SegmentedButton<String>(
+          showSelectedIcon: false,
+          segments: [
+            for (final item in Scenario.scenarios)
+              ButtonSegment(value: item.id, label: Text(item.name)),
+          ],
+          selected: {scenario.id},
+          onSelectionChanged: (ids) {
+            SoundService.tap();
+            onScenario(ids.first);
+          },
+        ),
+        const SizedBox(height: 5),
+        Text(scenario.summary, style: hint),
+        const SizedBox(height: 9),
+        SegmentedButton<StartSupply>(
+          showSelectedIcon: false,
+          segments: [
+            for (final item in StartSupply.values)
+              ButtonSegment(value: item, label: Text(item.label)),
+          ],
+          selected: {supply},
+          onSelectionChanged: (items) {
+            SoundService.tap();
+            onSupply(items.first);
+          },
+        ),
+        const SizedBox(height: 4),
+        Text('${supply.summary}，只影响本方开局', style: hint),
+      ],
+    );
+  }
+}
+
+/// 难度选择：三档分段切换，附当前难度说明。
 class DifficultyPicker extends StatelessWidget {
   const DifficultyPicker({
     super.key,
@@ -274,6 +341,9 @@ class DifficultyPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final hint = theme.textTheme.labelSmall?.copyWith(
+      color: colors.onSurfaceVariant,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -285,93 +355,32 @@ class DifficultyPicker extends StatelessWidget {
               color: colors.onSurfaceVariant,
             ),
             const SizedBox(width: 5),
-            Text(
-              '难度：${value.label} · ${value.summary}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colors.onSurfaceVariant,
-                fontSize: 11,
+            Text('难度 · ${value.label}', style: hint),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                value.summary,
+                style: hint,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
         const SizedBox(height: 7),
-        Row(
-          children: [
-            for (final item in Difficulty.values) ...[
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: item == Difficulty.values.last ? 0 : 8,
-                  ),
-                  child: _DifficultyOption(
-                    difficulty: item,
-                    selected: item == value,
-                    onTap: () {
-                      SoundService.tap();
-                      onChanged(item);
-                    },
-                  ),
-                ),
-              ),
-            ],
+        SegmentedButton<Difficulty>(
+          showSelectedIcon: false,
+          segments: [
+            for (final item in Difficulty.values)
+              ButtonSegment(value: item, label: Text(item.label)),
           ],
+          selected: {value},
+          onSelectionChanged: (items) {
+            SoundService.tap();
+            onChanged(items.first);
+          },
         ),
       ],
-    );
-  }
-}
-
-class _DifficultyOption extends StatelessWidget {
-  const _DifficultyOption({
-    required this.difficulty,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final Difficulty difficulty;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Material(
-      color: selected ? colors.primaryContainer : colors.surface,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Container(
-          height: 38,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected ? colors.primary : colors.outline,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                difficulty.label,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: selected ? colors.primary : colors.onSurface,
-                ),
-              ),
-              const SizedBox(width: 3),
-              for (var i = 0; i < difficulty.stars; i++)
-                Icon(
-                  Icons.star,
-                  size: 9,
-                  color: selected ? colors.primary : colors.onSurfaceVariant,
-                ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
