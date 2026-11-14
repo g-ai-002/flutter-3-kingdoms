@@ -24,6 +24,9 @@ class LogService {
     _initialized = false;
   }
 
+  /// Web 端没有日志文件，接口与 IO 平台保持一致。
+  static Future<void> flush() async {}
+
   static String get logFilePath => '';
 
   static void info(String message) => _write('INFO', message);

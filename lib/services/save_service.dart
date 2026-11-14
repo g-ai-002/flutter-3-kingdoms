@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../game/save_codec.dart';
@@ -12,6 +13,10 @@ class SaveService {
   static const int slots = 3;
   static const String autoKey = 'save_auto';
 
+  /// 累计写盘次数，供性能测试断言重复局面不重复写盘。
+  @visibleForTesting
+  static int writeCount = 0;
+
   static String slotKey(int slot) => 'save_slot_$slot';
 
   static Future<SharedPreferences> _prefs() => SharedPreferences.getInstance();
@@ -19,6 +24,7 @@ class SaveService {
   static Future<bool> write(String key, String data) async {
     try {
       final prefs = await _prefs();
+      writeCount++;
       return await prefs.setString(key, data);
     } catch (e, stack) {
       LogService.error('写入存档失败: $key', e, stack);

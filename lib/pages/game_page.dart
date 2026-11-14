@@ -42,12 +42,16 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   ]);
   bool _resultShown = false;
 
+  /// 已写入自动存档的数据修订号：进入对局时首页刚写过一次，故从当前值起算。
+  int _savedRevision = 0;
+
   GameController get controller => widget.controller;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _savedRevision = controller.revision;
     // 帧率直接写到对局，不必为一条设置重建地图与 HUD。
     _settings.addListener(_syncLogicRate);
     _game = SanguoGame(
@@ -93,7 +97,12 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
       await SaveService.delete(SaveService.autoKey);
       return;
     }
-    await SaveService.writeState(SaveService.autoKey, controller.game);
+    // 同一局面只写一次：退到后台、退出页面不再重复编码与写盘。
+    final revision = controller.revision;
+    if (revision == _savedRevision) return;
+    if (await SaveService.writeState(SaveService.autoKey, controller.game)) {
+      _savedRevision = revision;
+    }
   }
 
   void _onControllerChanged() {
@@ -305,24 +314,24 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
 
   Widget _buildMap() {
     final radius = BorderRadius.circular(18);
-    return RepaintBoundary(
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: radius,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 22,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: radius,
-          child: GameWidget<SanguoGame>(
-            key: const ValueKey('sanguo-map'),
-            game: _game,
+    // Flame 的 GameWidget 自带重绘边界，这里只留圆角与阴影，
+    // 地图逐帧重绘时不会带上外层装饰，也不再套一层多余的边界。
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: GameWidget<SanguoGame>(
+          key: const ValueKey('sanguo-map'),
+          game: _game,
         ),
       ),
     );

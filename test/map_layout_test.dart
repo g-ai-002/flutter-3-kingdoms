@@ -28,14 +28,13 @@ void main() {
 
       final normal = resolveHud(const Size(900, 900));
       expect(normal.sideRail, isFalse);
-      expect(normal.map.width, greaterThan(0));
-      expect(normal.map.height, greaterThan(0));
+      expect(normal.rail, lessThan(kHudRailWidth));
     });
 
     test('矮屏使用紧凑卡片并给底部按钮留出空间', () {
       final compact = resolveHud(const Size(900, 480));
       expect(compact.compact, isTrue);
-      expect(compact.map.height, lessThan(480));
+      expect(compact.rail, lessThan(kHudRailWidth));
     });
   });
 

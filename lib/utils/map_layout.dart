@@ -15,9 +15,7 @@ const double kHudRailWidth = 120;
 const double kHudCompactHeight = 540;
 
 const double kHudPadding = 8;
-const double kHudTitleRow = 60;
 const double kHudInfoRow = 54;
-const double kHudCompactTitleRow = 52;
 const double kHudCompactInfoRow = 44;
 const double kHudRowGap = 8;
 const double kHudBottomRow = 64;
@@ -40,20 +38,19 @@ Size mapFitSize(Size available, [double maxWidth = kMapMaxWidth]) {
 
 class HudMetrics {
   const HudMetrics({
-    required this.map,
     required this.rail,
     required this.compact,
     required this.sideRail,
   });
 
-  final Size map;
   final double rail;
   final bool compact;
   final bool sideRail;
 }
 
 /// 计算地图页的排版决策：操作按钮固定在下方，左右留白够宽时标题与城池
-/// 信息挂到地图两侧，否则排到地图上方。
+/// 信息挂到地图两侧，否则排到地图上方。地图尺寸由 [MapHud] 按实际可用
+/// 空间算一次即可，这里只回答「留白够不够」与「卡片要不要收紧」。
 HudMetrics resolveHud(
   Size area, {
   double maxWidth = kMapMaxWidth,
@@ -67,25 +64,10 @@ HudMetrics resolveHud(
     maxWidth,
   );
   final rail = math.max(0.0, (area.width - railMap.width) / 2);
-  if (rail >= kHudRailWidth) {
-    return HudMetrics(
-      map: railMap,
-      rail: rail,
-      compact: compact,
-      sideRail: true,
-    );
-  }
-  final title = compact ? kHudCompactTitleRow : kHudTitleRow;
-  final info = compact ? kHudCompactInfoRow : kHudInfoRow;
-  final top = kHudPadding * 2 + (title + kHudRowGap + info) * scale;
   return HudMetrics(
-    map: mapFitSize(
-      Size(area.width, math.max(0, area.height - top - bottom)),
-      maxWidth,
-    ),
     rail: rail,
     compact: compact,
-    sideRail: false,
+    sideRail: rail >= kHudRailWidth,
   );
 }
 

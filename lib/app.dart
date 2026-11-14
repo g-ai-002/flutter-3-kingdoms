@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -5,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'pages/home_page.dart';
 import 'providers/settings_provider.dart';
+import 'services/log_service.dart';
 import 'services/music_service.dart';
 import 'services/storage_service.dart';
 import 'theme/app_theme.dart';
@@ -51,9 +54,13 @@ class _SanguoAppState extends State<SanguoApp> with WidgetsBindingObserver {
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
         MusicService.pauseForLifecycle();
+        // 系统随时可能回收后台进程，先把待写日志刷进文件。
+        unawaited(LogService.flush());
         break;
       case AppLifecycleState.inactive:
+        break;
       case AppLifecycleState.detached:
+        unawaited(LogService.flush());
         break;
     }
   }

@@ -56,10 +56,16 @@ class MapComponent extends PositionComponent with TapCallbacks {
   int _ownerSignature = 0;
 
   final Map<String, TextPainter> _namePainters = {};
-  final Map<String, TextPainter> _troopPainters = {};
+
+  /// 兵数标签随主题变色，按深浅色各存一份，切主题时不必重新排版。
+  final Map<Brightness, Map<String, TextPainter>> _troopPainters = {
+    Brightness.light: {},
+    Brightness.dark: {},
+  };
   double _textBoost = 0;
-  Brightness? _textBrightness;
   double _labelBoost = 1;
+  int _nameLayouts = 0;
+  int _troopLayouts = 0;
 
   MapPalette get _palette => MapPalette.of(brightness.value);
 
@@ -78,6 +84,12 @@ class MapComponent extends PositionComponent with TapCallbacks {
   int get badgeLayerBuilds => _badges.builds;
   @visibleForTesting
   int get selectionLayerBuilds => _selection.builds;
+
+  /// 城名与兵数标签的排版次数，供性能测试断言切主题不重新排版。
+  @visibleForTesting
+  int get cityNameLayouts => _nameLayouts;
+  @visibleForTesting
+  int get troopLabelLayouts => _troopLayouts;
 
   /// 逻辑时钟累计的动画时间，供帧率切换测试断言。
   @visibleForTesting
@@ -139,18 +151,19 @@ class MapComponent extends PositionComponent with TapCallbacks {
 
   /// 小屏上地图整体缩得很小，按比例放大字面，保证城名仍可辨认。
   /// 缩放档位量化到 0.05，拖动窗口时不会每一帧都重录静态图层。
+  ///
+  /// 只有字号变化才重排文字：城名颜色与主题无关，兵数标签按深浅色各存一份，
+  /// 来回切换深色模式不再重排任何一条文字。
   void _syncTextMetrics(double scale) {
     final boost = scale < 0.62 ? (0.62 / scale).clamp(1.0, 1.7) : 1.0;
     final quantized = (boost * 20).roundToDouble() / 20;
-    if (_textBrightness == brightness.value &&
-        (_textBoost - quantized).abs() < 0.001) {
-      return;
-    }
+    if ((_textBoost - quantized).abs() < 0.001) return;
     _textBoost = quantized;
     _labelBoost = quantized;
-    _textBrightness = brightness.value;
     _namePainters.clear();
-    _troopPainters.clear();
+    for (final cache in _troopPainters.values) {
+      cache.clear();
+    }
   }
 
   /// 地图签名：归属签名只看谁是城主，视觉签名还看兵数档位与太守。
@@ -370,6 +383,7 @@ class MapComponent extends PositionComponent with TapCallbacks {
   }
 
   TextPainter _namePainter(String name) => _namePainters.putIfAbsent(name, () {
+    _nameLayouts++;
     return TextPainter(
       text: TextSpan(
         text: name,
@@ -388,11 +402,13 @@ class MapComponent extends PositionComponent with TapCallbacks {
 
   TextPainter _troopPainter(int troops) {
     final label = '兵 ${formatTroopsCompact(troops)}';
-    final cached = _troopPainters[label];
+    final cache = _troopPainters[brightness.value]!;
+    final cached = cache[label];
     if (cached != null) return cached;
     // 长期对局里兵数标签会不断出现新组合，超过上限就整体重建，避免缓存无限增长。
-    if (_troopPainters.length >= 96) _troopPainters.clear();
-    return _troopPainters[label] = TextPainter(
+    if (cache.length >= 96) cache.clear();
+    _troopLayouts++;
+    return cache[label] = TextPainter(
       text: TextSpan(
         text: label,
         style: TextStyle(

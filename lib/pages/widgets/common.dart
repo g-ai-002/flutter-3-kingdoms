@@ -120,16 +120,10 @@ BoxDecoration cardDecoration(
 
 /// 势力印：朱文方印，用作logo、势力卡与战斗旗帜。
 class FactionSeal extends StatelessWidget {
-  const FactionSeal({
-    super.key,
-    required this.factionId,
-    this.size = 44,
-    this.showBorder = true,
-  });
+  const FactionSeal({super.key, required this.factionId, this.size = 44});
 
   final String factionId;
   final double size;
-  final bool showBorder;
 
   @override
   Widget build(BuildContext context) {
@@ -142,12 +136,10 @@ class FactionSeal extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(size * 0.16),
-        border: showBorder
-            ? Border.all(
-                color: const Color(0xFFE0BE82).withValues(alpha: 0.75),
-                width: 1.2,
-              )
-            : null,
+        border: Border.all(
+          color: const Color(0xFFE0BE82).withValues(alpha: 0.75),
+          width: 1.2,
+        ),
       ),
       child: Text(
         name,
@@ -224,22 +216,19 @@ class StatBar extends StatelessWidget {
 class SectionCard extends StatelessWidget {
   const SectionCard({
     super.key, this.title, this.trailing, required this.child,
-    this.padding = const EdgeInsets.fromLTRB(14, 12, 14, 14), this.color,
   });
 
   final String? title;
   final Widget? trailing;
   final Widget child;
-  final EdgeInsets padding;
-  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     return Container(
-      padding: padding,
-      decoration: cardDecoration(context, color: color),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: cardDecoration(context),
       child: Material(
         type: MaterialType.transparency,
         child: Column(
@@ -428,12 +417,10 @@ class SheetFrame extends StatelessWidget {
 
 /// 面板内的提示小字：分区小标题用默认样式，空状态正文用 [body]。
 class HintText extends StatelessWidget {
-  const HintText(
-    this.text, {super.key, this.body = false, this.center = false});
+  const HintText(this.text, {super.key, this.body = false});
 
   final String text;
   final bool body;
-  final bool center;
 
   @override
   Widget build(BuildContext context) {
@@ -441,10 +428,6 @@ class HintText extends StatelessWidget {
     final style =
         (body ? theme.textTheme.bodySmall : theme.textTheme.labelSmall)
             ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
-    return Text(
-      text,
-      style: style,
-      textAlign: center ? TextAlign.center : null,
-    );
+    return Text(text, style: style);
   }
 }

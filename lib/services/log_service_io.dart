@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -6,14 +7,21 @@ import '../utils/formatters.dart';
 
 /// 日志服务：内存环形缓冲 + 按天文件落盘。
 ///
-/// 初始化前的日志先进入早期缓冲，初始化后补写；日志目录不可用时降级为内存模式。
+/// 日志先进待写队列，再由定时器整批异步写入：界面线程不再为每条日志做同步
+/// stat 与写盘，结算、战斗这类集中输出也只写一次文件。初始化前的日志先进入
+/// 早期缓冲，初始化后补写；日志目录不可用时降级为内存模式。
 class LogService {
   static LogService? _instance;
   static final List<String> _earlyBuffer = [];
   final List<String> _buffer = [];
+  final List<String> _pending = [];
+  Timer? _flushTimer;
   Directory? _logDir;
   File? _logFile;
   DateTime? _logDate;
+  int _fileBytes = 0;
+  int _bufferStart = 0;
+  bool _flushing = false;
   bool _initialized = false;
   DateTime Function() _now = DateTime.now;
 
@@ -21,6 +29,11 @@ class LogService {
   static const int _maxEarlyLines = 500;
   static const int _maxFileSize = 5 * 1024 * 1024;
   static const int _maxRetentionDays = 7;
+  static const Duration _flushDelay = Duration(milliseconds: 250);
+
+  /// 累计写盘批次数，供性能测试断言日志是批量落盘。
+  @visibleForTesting
+  static int writeBatches = 0;
 
   LogService._();
 
@@ -32,10 +45,16 @@ class LogService {
     await _instance!._init(logRoot, clock);
   }
 
+  /// 立即把待写日志刷入文件：切后台、退出与测试结束前调用。
+  static Future<void> flush() async => _instance?._flush();
+
   /// 仅用于测试。
   static void reset() {
+    _instance?._flushTimer?.cancel();
+    _instance?._pending.clear();
     _instance = null;
     _earlyBuffer.clear();
+    writeBatches = 0;
   }
 
   Future<void> _init(
@@ -51,23 +70,13 @@ class LogService {
         debugPrint('[LogService] 日志目录不可用，降级为内存日志: $e');
       }
     }
-    _logFile = _openTodayFile();
     _initialized = true;
-    if (_logFile != null) {
-      _logDate = _now();
-      _cleanOldLogs();
-    }
-    if (_earlyBuffer.isNotEmpty) {
-      for (final line in _earlyBuffer) {
-        _buffer.add(line);
-        _appendLine(line);
-      }
-      _earlyBuffer.clear();
-    }
-    _write(
-      'INFO',
-      '==== LogService 已初始化, 日志文件: ${_logFile?.path ?? '内存模式'} ====',
-    );
+    _logFile = await _fileForToday();
+    _pending.addAll(_earlyBuffer);
+    _earlyBuffer.forEach(_remember);
+    _earlyBuffer.clear();
+    _write('INFO', '==== LogService 已初始化, 日志文件: ${_logFile?.path ?? '内存模式'} ====');
+    await _flush();
   }
 
   static String get logFilePath => _instance?._logFile?.path ?? '';
@@ -94,76 +103,77 @@ class LogService {
 
   void _write(String level, String message) {
     final line = formatLogLine(_now(), level, message);
-    _buffer.add(line);
-    if (_buffer.length > _maxBufferLines) _buffer.removeAt(0);
-    _appendLine(line);
+    _remember(line);
+    _pending.add(line);
+    _flushTimer ??= Timer(_flushDelay, () => unawaited(_flush()));
   }
 
-  void _appendLine(String line) {
+  /// 环形写入：缓冲满后覆盖最旧一行，长期对局每条日志都是 O(1)。
+  void _remember(String line) {
+    if (_buffer.length < _maxBufferLines) return _buffer.add(line);
+    _buffer[_bufferStart] = line;
+    _bufferStart = (_bufferStart + 1) % _maxBufferLines;
+  }
+
+  Future<void> _flush() async {
+    _flushTimer?.cancel();
+    _flushTimer = null;
+    if (_flushing || _pending.isEmpty) return;
+    _flushing = true;
+    final batch = _pending.join('\n');
+    _pending.clear();
     try {
-      _refreshLogFile();
-      _logFile?.writeAsStringSync('$line\n', mode: FileMode.append);
-    } catch (_) {}
-  }
-
-  void _refreshLogFile() {
-    final dir = _logDir;
-    if (dir == null) return;
-    final now = _now();
-    final current = _logDate;
-    final needSwitch =
-        current == null ||
-        current.year != now.year ||
-        current.month != now.month ||
-        current.day != now.day;
-    if (needSwitch) {
-      final file = _openTodayFile();
+      final file = await _fileForToday();
       if (file != null) {
-        _logFile = file;
-        _logDate = now;
-        _cleanOldLogs();
+        await file.writeAsString('$batch\n', mode: FileMode.append);
+        _fileBytes += batch.length + 1;
+        writeBatches++;
       }
-      return;
+    } catch (_) {
+      // 磁盘不可写时丢弃这一批，内存日志仍可在设置页查看。
+    } finally {
+      _flushing = false;
+      if (_pending.isNotEmpty) {
+        _flushTimer ??= Timer(_flushDelay, () => unawaited(_flush()));
+      }
     }
-    _rotateIfNeeded();
   }
 
-  File? _openTodayFile() {
+  /// 取今天的日志文件：跨天换文件，超过 5 MB 先改名备份再新建。
+  /// 体积由内存计数得知，不必每条日志都去问文件系统。
+  Future<File?> _fileForToday() async {
     final dir = _logDir;
     if (dir == null) return null;
+    final now = _now();
+    final date = _logDate;
+    final sameDay =
+        date != null &&
+        date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
+    final current = _logFile;
+    if (sameDay && current != null && _fileBytes < _maxFileSize) return current;
     try {
-      final now = _now();
+      if (sameDay && current != null) {
+        final stem = current.path.substring(0, current.path.length - 4);
+        var index = 1;
+        while (await File('${stem}_$index.log').exists()) {
+          index++;
+        }
+        await current.rename('${stem}_$index.log');
+      }
       final file = File(
         '${dir.path}${Platform.pathSeparator}app_${formatDateKey(now)}.log',
       );
-      if (!file.existsSync()) file.createSync(recursive: true);
+      if (!await file.exists()) await file.create(recursive: true);
+      _fileBytes = await file.length();
+      _logFile = file;
+      _logDate = now;
+      if (!sameDay) _cleanOldLogs();
       return file;
     } catch (_) {
-      return null;
+      return current;
     }
-  }
-
-  void _rotateIfNeeded() {
-    final file = _logFile;
-    if (file == null) return;
-    try {
-      if (!file.existsSync() || file.lengthSync() < _maxFileSize) return;
-      final originalPath = file.path;
-      final parent = file.parent;
-      final baseName = file.uri.pathSegments.last.replaceAll('.log', '');
-      var index = 1;
-      File backup;
-      do {
-        backup = File(
-          '${parent.path}${Platform.pathSeparator}${baseName}_$index.log',
-        );
-        index++;
-      } while (backup.existsSync());
-      file.renameSync(backup.path);
-      final fresh = File(originalPath);
-      if (!fresh.existsSync()) fresh.createSync();
-      _logFile = fresh;
-    } catch (_) {}
   }
 
   void _cleanOldLogs() {
@@ -185,8 +195,12 @@ class LogService {
   /// 最近日志（内存缓冲，含尚未落盘的早期日志）。
   static List<String> getRecentLogs([int lines = 200]) {
     final inst = _instance;
-    final all = <String>[..._earlyBuffer, if (inst != null) ...inst._buffer];
+    final all = <String>[..._earlyBuffer, ...?inst?._orderedBuffer];
     if (all.length <= lines) return all;
     return all.sublist(all.length - lines);
   }
+
+  List<String> get _orderedBuffer => _buffer.length < _maxBufferLines
+      ? _buffer
+      : [..._buffer.skip(_bufferStart), ..._buffer.take(_bufferStart)];
 }

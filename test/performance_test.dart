@@ -18,6 +18,7 @@ import 'package:flutter_3_kingdoms/pages/game_page.dart';
 import 'package:flutter_3_kingdoms/pages/home_page.dart';
 import 'package:flutter_3_kingdoms/pages/widgets/map_hud.dart';
 import 'package:flutter_3_kingdoms/providers/settings_provider.dart';
+import 'package:flutter_3_kingdoms/services/save_service.dart';
 import 'package:flutter_3_kingdoms/services/storage_service.dart';
 import 'package:flutter_3_kingdoms/services/tone_synth.dart';
 import 'package:flutter_3_kingdoms/theme/map_painting.dart';
@@ -260,6 +261,79 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
+  });
+
+  test('城名与兵数标签按主题缓存，深浅色来回切换不再重排文字', () {
+    final controller = GameController(factionId: 'wei', seed: 3);
+    final brightness = ValueNotifier(Brightness.light);
+    addTearDown(brightness.dispose);
+    final map = MapComponent(controller: controller, brightness: brightness)
+      ..size = Vector2(1200, 760);
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    map.render(canvas);
+    final names = map.cityNameLayouts;
+    final troops = map.troopLabelLayouts;
+    expect(names, controller.game.totalCities);
+
+    brightness.value = Brightness.dark;
+    map.render(canvas);
+    expect(map.cityNameLayouts, names, reason: '城名配色与主题无关，不该重排');
+    expect(map.troopLabelLayouts, greaterThan(troops), reason: '深色兵数标签另存一份');
+
+    final darkTroops = map.troopLabelLayouts;
+    brightness.value = Brightness.light;
+    map.render(canvas);
+    expect(map.cityNameLayouts, names);
+    expect(map.troopLabelLayouts, darkTroops, reason: '浅色标签已缓存，切回不再排版');
+
+    // 小屏放大字面属于字号变化，这时才重排全部城名。
+    map.size = Vector2(600, 380);
+    map.render(canvas);
+    expect(map.cityNameLayouts, greaterThan(names));
+
+    recorder.endRecording().dispose();
+  });
+
+  testWidgets('同一局面只写一次自动存档，退出对局不重复写盘', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.resetForTests();
+    SaveService.writeCount = 0;
+    final settings = SettingsProvider(await StorageService.instance);
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = GameController(factionId: 'wei', seed: 3);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      ChangeNotifierProvider<SettingsProvider>.value(
+        value: settings,
+        child: MaterialApp(home: GamePage(controller: controller)),
+      ),
+    );
+    await tester.pump();
+    // 进入对局时首页刚写过自动存档，退出页面不必原样再写一遍。
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 10));
+    expect(SaveService.writeCount, 0);
+
+    // 局面推进过才写：结束本月改动了年份与钱粮。
+    final next = GameController(factionId: 'wei', seed: 4);
+    addTearDown(next.dispose);
+    await tester.pumpWidget(
+      ChangeNotifierProvider<SettingsProvider>.value(
+        value: settings,
+        child: MaterialApp(home: GamePage(controller: next)),
+      ),
+    );
+    await tester.pump();
+    next.endTurn();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 10));
+    expect(SaveService.writeCount, 1);
   });
 
   test('州名水印文字按主题缓存，重复绘制不再排版', () {
