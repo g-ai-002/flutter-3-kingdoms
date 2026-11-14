@@ -50,7 +50,7 @@
 
 ### v0.4.2 (PATCH) — 2026-11-14
 
-- **状态**: 构建与发布中 ⏳
+- **状态**: Android / Windows / Web 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.4.2)）
 - **目标**: 玩法与数值不变，去掉静止画面与设置切换中的重复开销：地图不再空转、主题不重复构建、无关设置不重建对局页、读档与启动少等待。
 - **任务**:
   - [x] 静止即停帧：`MapIdlePolicy` 不再空转 1.2 秒，未选中城池时一次数据变化只重绘一帧；选中城池仍播放 2.4 秒脉冲
@@ -64,8 +64,8 @@
   - [x] 首帧不等日志：窗口尺寸仍先就位，日志目录移到 `runApp` 之后初始化，早期日志由内存缓冲补写
   - [x] 新增停帧时序、应用外壳重建、对局页重建与水印缓存测试，112 项测试通过
   - [x] `flutter analyze` 无问题；lib 代码 9985 行，低于 10000 行上限
-  - [ ] 构建流水线：Dart 测试、Android、Windows、Web 与 Pages 任务全部通过，Web 站点发布到 `tea-pages/v0.4.2`
-  - [ ] Release：Android APK、Windows ZIP 与 Web ZIP 三端产物上传
+  - [x] 构建流水线：Dart 测试、Android、Windows、Web 与 Pages 任务全部通过，Web 站点已发布到 `tea-pages/v0.4.2`
+  - [x] Release：Android APK、Windows ZIP 与 Web ZIP 三端产物已上传，Windows runner 本次在线
 
 ### v0.4.1 (PATCH) — 2026-11-14
 
