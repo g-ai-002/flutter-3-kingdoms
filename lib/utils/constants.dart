@@ -17,9 +17,6 @@ class AppConstants {
   static const String appName = '三国霸业';
   static const String version = '0.3.2';
 
-  /// 开局年份：建安元年（196 年）。
-  static const int startYear = 196;
-
   static const String prefKeyDarkMode = 'dark_mode';
   static const String prefKeySound = 'sound_enabled';
   static const String prefKeyMusic = 'music_enabled';
@@ -27,4 +24,6 @@ class AppConstants {
   static const String prefKeyLogicRate = 'logic_rate';
   static const String prefKeyDifficulty = 'difficulty';
   static const String prefKeyPlayerFaction = 'player_faction';
+  static const String prefKeyScenario = 'scenario';
+  static const String prefKeyStartGold = 'start_gold_ratio';
 }

@@ -38,9 +38,16 @@ class GameController extends ChangeNotifier {
   GameController({
     required String factionId,
     Difficulty difficulty = Difficulty.normal,
+    String? scenarioId,
+    double goldRatio = 1,
     int? seed,
   }) : _random = Random(seed),
-       state = Scenario.build(playerFaction: factionId, difficulty: difficulty);
+       state = Scenario.build(
+         playerFaction: factionId,
+         difficulty: difficulty,
+         scenarioId: scenarioId,
+         goldRatio: goldRatio,
+       );
 
   /// 从存档恢复：局面已由 SaveCodec 还原，随机数用新种子重开。
   GameController.fromState(this.state, {int? seed}) : _random = Random(seed);

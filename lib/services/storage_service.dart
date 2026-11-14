@@ -67,4 +67,15 @@ class StorageService {
       _p.getString(AppConstants.prefKeyPlayerFaction) ?? 'wei';
   Future<void> setPlayerFactionId(String value) =>
       _write((p) => p.setString(AppConstants.prefKeyPlayerFaction, value));
+
+  /// 上次选择的剧本，未设置时由剧本表回退到默认剧本。
+  String get scenarioId => _p.getString(AppConstants.prefKeyScenario) ?? '';
+  Future<void> setScenarioId(String value) =>
+      _write((p) => p.setString(AppConstants.prefKeyScenario, value));
+
+  /// 自定义开局的钱粮倍率，未设置时为 1。
+  double get startGoldRatio =>
+      _p.getDouble(AppConstants.prefKeyStartGold) ?? 1;
+  Future<void> setStartGoldRatio(double value) =>
+      _write((p) => p.setDouble(AppConstants.prefKeyStartGold, value));
 }

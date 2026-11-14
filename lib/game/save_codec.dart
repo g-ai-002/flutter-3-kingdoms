@@ -13,6 +13,7 @@ class SaveSummary {
     required this.month,
     required this.factionId,
     required this.cityCount,
+    this.scenarioId = '',
     this.savedAt,
   });
 
@@ -20,10 +21,16 @@ class SaveSummary {
   final int month;
   final String factionId;
   final int cityCount;
+  final String scenarioId;
   final DateTime? savedAt;
 
-  String get label =>
-      '$year年$month月 · ${FactionDefs.byId(factionId).name} · $cityCount 城';
+  String get label {
+    final scenario = Scenario.byId(scenarioId);
+    final tag = scenario.id == Scenario.defaultScenarioId
+        ? ''
+        : '${scenario.name} · ';
+    return '$tag$year年$month月 · ${FactionDefs.byId(factionId).name} · $cityCount 城';
+  }
 }
 
 /// 存档编解码：只写动态状态，城池地形、武将与剧本常量从剧本重建。
@@ -41,6 +48,7 @@ class SaveCodec {
       'year': state.year,
       'month': state.month,
       'player': state.playerFaction,
+      'scenario': state.scenarioId,
       'difficulty': state.difficulty.name,
       'finished': state.finished,
       'outcome': state.outcome?.name,
@@ -99,6 +107,7 @@ class SaveCodec {
       month: (raw['month'] as num?)?.toInt() ?? 1,
       factionId: FactionDefs.isKnown(player) ? player : 'wei',
       cityCount: owned,
+      scenarioId: raw['scenario'] as String? ?? '',
       savedAt: DateTime.tryParse(raw['savedAt'] as String? ?? ''),
     );
   }
@@ -115,6 +124,7 @@ class SaveCodec {
     final state = Scenario.build(
       playerFaction: player,
       difficulty: Difficulty.byName(raw['difficulty'] as String?),
+      scenarioId: raw['scenario'] as String?,
     );
     state.chronicle.clear();
     state.year = (raw['year'] as num?)?.toInt() ?? 196;

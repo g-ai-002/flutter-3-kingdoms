@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../game/data/scenario.dart';
 import '../models/difficulty.dart';
 import '../services/music_service.dart';
 import '../services/sound_service.dart';
@@ -50,6 +51,14 @@ class SettingsProvider extends ChangeNotifier {
   String get playerFactionId => _storage.playerFactionId;
   Future<void> setPlayerFactionId(String value) =>
       _update(() => _storage.setPlayerFactionId(value));
+
+  ScenarioDef get scenario => Scenario.byId(_storage.scenarioId);
+  Future<void> setScenarioId(String value) =>
+      _update(() => _storage.setScenarioId(value));
+
+  StartSupply get supply => StartSupply.byRatio(_storage.startGoldRatio);
+  Future<void> setSupply(StartSupply value) =>
+      _update(() => _storage.setStartGoldRatio(value.ratio));
 
   void _syncFeedback() =>
       SoundService.configure(sound: soundEnabled, haptics: hapticsEnabled);

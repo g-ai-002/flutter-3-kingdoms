@@ -1,4 +1,3 @@
-import '../utils/constants.dart';
 import 'chronicle.dart';
 import 'city.dart';
 import 'difficulty.dart';
@@ -23,6 +22,9 @@ class GameState {
   GameState({
     required this.year,
     required this.month,
+    required this.startYear,
+    required this.startMonth,
+    required this.scenarioId,
     required this.factions,
     required this.cities,
     required this.generals,
@@ -35,6 +37,11 @@ class GameState {
 
   int year;
   int month;
+
+  /// 开局年月与剧本：对局月数与存档据此还原，不受当前年月影响。
+  final int startYear;
+  final int startMonth;
+  final String scenarioId;
 
   final Map<String, FactionState> factions;
   final Map<String, City> cities;
@@ -56,8 +63,8 @@ class GameState {
 
   bool get isVictory => outcome == GameOutcome.victory;
 
-  /// 开局至今经过的月份，含当前月。
-  int get elapsedMonths => (year - AppConstants.startYear) * 12 + month - 1;
+  /// 开局至今经过的月份：开局当月为 0。
+  int get elapsedMonths => (year - startYear) * 12 + month - startMonth;
 
   Iterable<City> citiesOf(String factionId) =>
       cities.values.where((city) => city.owner == factionId);
