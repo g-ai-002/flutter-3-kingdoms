@@ -31,14 +31,10 @@ class SaveCodec {
   SaveCodec._();
 
   static const int version = 1;
-  static const int _maxChronicle = 300;
 
   static String encode(GameState state) => jsonEncode(_toMap(state));
 
   static Map<String, dynamic> _toMap(GameState state) {
-    final keep = state.chronicle.length > _maxChronicle
-        ? state.chronicle.sublist(state.chronicle.length - _maxChronicle)
-        : state.chronicle;
     return {
       'v': version,
       'savedAt': DateTime.now().toIso8601String(),
@@ -78,7 +74,7 @@ class SaveCodec {
       },
       'pacts': state.pacts,
       'chronicle': [
-        for (final entry in keep)
+        for (final entry in state.recentChronicle)
           [
             entry.year,
             entry.month,

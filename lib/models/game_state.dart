@@ -46,6 +46,9 @@ class GameState {
   /// 两家盟约剩余月数，键为按字典序拼接的势力对。
   final Map<String, int> pacts = <String, int>{};
 
+  /// 内存中保留的战报上限：长篇对局只留最近若干条，面板与存档都取这段尾部。
+  static const int chronicleLimit = 300;
+
   bool finished;
   GameOutcome? outcome;
 
@@ -125,6 +128,11 @@ class GameState {
 
   int get totalCities => cities.length;
 
+  /// 最近的战报：超出 [chronicleLimit] 时只取尾部，供战报面板与存档共用。
+  Iterable<Chronicle> get recentChronicle => chronicle.length <= chronicleLimit
+      ? chronicle
+      : chronicle.sublist(chronicle.length - chronicleLimit);
+
   /// 与本城接壤且属于其他势力的城池。
   List<City> enemyNeighbors(City city) => city.neighbors
       .map((id) => cities[id]!)
@@ -185,5 +193,9 @@ class GameState {
         factionId: factionId,
       ),
     );
+    // 攒到两倍上限才裁一次，摊销删除成本，也避免每回合都搬动整个列表。
+    if (chronicle.length > chronicleLimit * 2) {
+      chronicle.removeRange(0, chronicle.length - chronicleLimit);
+    }
   }
 }

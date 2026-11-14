@@ -39,7 +39,8 @@ class _ChronicleSheetState extends State<_ChronicleSheet> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final game = widget.controller.game;
-    final entries = game.chronicle.reversed
+    // 只取内存里保留的尾部战报，长篇对局不必反转整段历史。
+    final entries = game.recentChronicle.toList().reversed
         .where(
           (entry) =>
               !_onlyMine ||
