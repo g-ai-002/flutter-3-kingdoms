@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../models/faction.dart';
 
+/// 次要说明文字的统一样式：小号 + 弱化色。
+TextStyle? hintStyle(BuildContext context) {
+  final theme = Theme.of(context);
+  return theme.textTheme.labelSmall?.copyWith(
+    color: theme.colorScheme.onSurfaceVariant,
+  );
+}
+
 /// 势力印：朱文方印，用作logo、势力卡与战斗旗帜。
 class FactionSeal extends StatelessWidget {
   const FactionSeal({

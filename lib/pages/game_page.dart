@@ -402,13 +402,11 @@ class _FactionHudCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
     final game = controller.game;
     final faction = game.player;
     final def = FactionDefs.byId(game.playerFaction);
-    final tally = game.tallyOf(game.playerFaction);
     final compact = HudScope.compactOf(context);
-    final resources = '金 ${faction.gold} · 粮 ${faction.food}';
+    final hint = hintStyle(context);
     final identity = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -425,32 +423,26 @@ class _FactionHudCard extends StatelessWidget {
           formatYearMonth(game.year, game.month),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: colors.onSurfaceVariant,
-            fontSize: compact ? 9.5 : 10,
-          ),
+          style: hint?.copyWith(fontSize: compact ? 9.5 : 10),
         ),
         // 侧栏可能只有一百多像素宽：紧凑模式把钱粮并进第二三行，不另起标签。
         if (compact)
           Text(
-            resources,
+            '金 ${faction.gold} · 粮 ${faction.food}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: colors.onSurfaceVariant,
-              fontSize: 9.5,
-            ),
+            style: hint?.copyWith(fontSize: 9.5),
           ),
       ],
+    );
+    final seal = FactionSeal(
+      factionId: game.playerFaction,
+      size: compact ? 26 : 30,
     );
     if (compact) {
       return Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          FactionSeal(factionId: game.playerFaction, size: 26),
-          const SizedBox(width: 7),
-          Flexible(child: identity),
-        ],
+        children: [seal, const SizedBox(width: 7), Flexible(child: identity)],
       );
     }
     return Wrap(
@@ -460,13 +452,13 @@ class _FactionHudCard extends StatelessWidget {
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            FactionSeal(factionId: game.playerFaction, size: 30),
-            const SizedBox(width: 8),
-            identity,
-          ],
+          children: [seal, const SizedBox(width: 8), identity],
         ),
-        InfoChip(text: '城 ${tally.cities}', dense: true, color: def.color),
+        InfoChip(
+          text: '城 ${game.tallyOf(game.playerFaction).cities}',
+          dense: true,
+          color: def.color,
+        ),
         InfoChip(text: '金 ${faction.gold}', dense: true, color: appGold),
         InfoChip(text: '粮 ${faction.food}', dense: true, color: appJade),
       ],

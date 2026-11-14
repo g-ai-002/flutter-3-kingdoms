@@ -27,9 +27,7 @@ Future<void> showAppointmentSheet(
           subtitle: '任命太守 · 太守的政治与统率影响内政与守城',
           trailing: Text(
             '金 ${controller.game.player.gold}',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
+            style: hintStyle(context),
           ),
           scrollable: true,
           child: Column(
@@ -107,7 +105,6 @@ class _GeneralTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
     return ListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
@@ -121,9 +118,7 @@ class _GeneralTile extends StatelessWidget {
       subtitle: Text(
         '武 ${general.wu} · 智 ${general.intel} · '
         '统 ${general.lead} · 政 ${general.politics}',
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: colors.onSurfaceVariant,
-        ),
+        style: hintStyle(context),
       ),
       trailing: trailing,
       onTap: onTap,

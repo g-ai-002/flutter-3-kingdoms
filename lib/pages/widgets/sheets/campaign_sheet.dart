@@ -96,6 +96,7 @@ class _CampaignSheetState extends State<_CampaignSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final hint = hintStyle(context);
     final source = widget.source;
     final preview = widget.controller.previewAttack(source, _target);
     final defender = preview.defender;
@@ -158,12 +159,7 @@ class _CampaignSheetState extends State<_CampaignSheet> {
                       style: theme.textTheme.titleSmall?.copyWith(fontSize: 13),
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      _target.terrain.label,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
+                    Text(_target.terrain.label, style: hint),
                     const SizedBox(width: 5),
                     InfoChip(
                       text: _target.troopType.label,
@@ -183,18 +179,12 @@ class _CampaignSheetState extends State<_CampaignSheet> {
                   '守军 ${_target.troops} · 城防 ${_target.defense} · '
                   '训练 ${_target.training} · '
                   '守将 ${defender?.name ?? '无名守将'}',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                    height: 1.5,
-                  ),
+                  style: hint?.copyWith(height: 1.5),
                 ),
                 Text(
                   '${source.troopType.label} 对 ${_target.troopType.label} · '
                   '${_counterHint(source, _target)}',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                    height: 1.5,
-                  ),
+                  style: hint?.copyWith(height: 1.5),
                 ),
               ],
             ),
@@ -230,12 +220,7 @@ class _CampaignSheetState extends State<_CampaignSheet> {
                 style: theme.textTheme.titleSmall?.copyWith(fontSize: 13),
               ),
               const Spacer(),
-              Text(
-                '留 ${source.troops - _troops.round()} 守城',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
+              Text('留 ${source.troops - _troops.round()} 守城', style: hint),
             ],
           ),
           Slider(

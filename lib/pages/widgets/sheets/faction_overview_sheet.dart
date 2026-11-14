@@ -173,10 +173,7 @@ class _MoveButton extends StatelessWidget {
                 ),
                 Text(
                   move.summary,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                    fontSize: 10.5,
-                  ),
+                  style: hintStyle(context)?.copyWith(fontSize: 10.5),
                 ),
               ],
             ),
@@ -271,9 +268,7 @@ class _FactionRow extends StatelessWidget {
                       Text(
                         '${tally.cities} 城 · 兵 ${tally.troops} · '
                         '金 ${faction.gold} · 粮 ${faction.food}',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
+                        style: hintStyle(context),
                       ),
                       if (pactMonths > 0)
                         InfoChip(

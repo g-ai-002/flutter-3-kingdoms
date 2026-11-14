@@ -196,7 +196,6 @@ class _SlotRow extends StatelessWidget {
     final colors = theme.colorScheme;
     final empty = summary == null;
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colors.outline),
@@ -204,43 +203,35 @@ class _SlotRow extends StatelessWidget {
             ? colors.surface
             : colors.primaryContainer.withValues(alpha: 0.3),
       ),
-      child: Row(
-        children: [
-          Icon(
-            empty ? Icons.crop_square_rounded : Icons.save_outlined,
-            size: 18,
-            color: empty ? colors.onSurfaceVariant : colors.primary,
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(fontSize: 13),
-                ),
-                Text(
-                  summary?.label ?? '空槽位',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-              ],
+      child: ListTile(
+        dense: true,
+        onTap: enabled ? onAction : null,
+        leading: Icon(
+          empty ? Icons.crop_square_rounded : Icons.save_outlined,
+          size: 18,
+          color: empty ? colors.onSurfaceVariant : colors.primary,
+        ),
+        title: Text(
+          title,
+          style: theme.textTheme.titleSmall?.copyWith(fontSize: 13),
+        ),
+        subtitle: Text(summary?.label ?? '空槽位', style: hintStyle(context)),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onDelete != null)
+              IconButton(
+                tooltip: '删除存档',
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline, size: 18),
+                visualDensity: VisualDensity.compact,
+              ),
+            TextButton(
+              onPressed: enabled ? onAction : null,
+              child: Text(actionLabel),
             ),
-          ),
-          if (onDelete != null)
-            IconButton(
-              tooltip: '删除存档',
-              onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline, size: 18),
-              visualDensity: VisualDensity.compact,
-            ),
-          TextButton(
-            onPressed: enabled ? onAction : null,
-            child: Text(actionLabel),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

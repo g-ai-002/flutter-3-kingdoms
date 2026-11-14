@@ -78,16 +78,15 @@ class _ActionTile extends StatelessWidget {
     final tone = enabled ? colors.primary : colors.onSurfaceVariant;
     return Material(
       color: colors.surface,
-      borderRadius: BorderRadius.circular(12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: colors.outline),
+      ),
       child: InkWell(
         onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(12),
-        child: Container(
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: colors.outline),
-          ),
           child: Row(
             children: [
               Container(

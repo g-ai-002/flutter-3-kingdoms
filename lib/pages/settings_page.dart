@@ -18,6 +18,19 @@ class SettingsPage extends StatelessWidget {
     final settings = context.watch<SettingsProvider>();
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    Widget picker(String label, List<Widget> chips) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 8, children: chips),
+      ],
+    );
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
       body: ListView(
@@ -68,47 +81,25 @@ class SettingsPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '地图动画与选中脉冲的逻辑刷新率（对局中即时生效）',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final rate in LogicRate.values)
-                      ChoiceChip(
-                        label: Text(rate.label),
-                        selected: settings.logicRate == rate,
-                        onSelected: (_) => settings.setLogicRate(rate),
-                      ),
-                  ],
-                ),
+                picker('地图动画与选中脉冲的逻辑刷新率（对局中即时生效）', [
+                  for (final rate in LogicRate.values)
+                    ChoiceChip(
+                      label: Text(rate.label),
+                      selected: settings.logicRate == rate,
+                      onSelected: (_) => settings.setLogicRate(rate),
+                    ),
+                ]),
                 const SizedBox(height: 14),
-                Text(
-                  '默认难度（开局时可再选择）',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final difficulty in Difficulty.values)
-                      ChoiceChip(
-                        label: Text(
-                          '${difficulty.label} ${'★' * difficulty.stars}',
-                        ),
-                        selected: settings.difficulty == difficulty,
-                        onSelected: (_) => settings.setDifficulty(difficulty),
+                picker('默认难度（开局时可再选择）', [
+                  for (final difficulty in Difficulty.values)
+                    ChoiceChip(
+                      label: Text(
+                        '${difficulty.label} ${'★' * difficulty.stars}',
                       ),
-                  ],
-                ),
+                      selected: settings.difficulty == difficulty,
+                      onSelected: (_) => settings.setDifficulty(difficulty),
+                    ),
+                ]),
               ],
             ),
           ),
@@ -179,9 +170,8 @@ class _LogSection extends StatelessWidget {
     final opened = await FileSystemService.instance.openDirectory(path);
     if (!context.mounted) return;
     if (!opened) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('日志目录：$path')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('日志目录：$path')));
     }
   }
 
@@ -219,9 +209,9 @@ class _LogSection extends StatelessWidget {
                 onPressed: () {
                   final text = LogService.getRecentLogs(80).join('\n');
                   Clipboard.setData(ClipboardData(text: text));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('最近 80 条日志已复制')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('最近 80 条日志已复制')));
                 },
                 icon: const Icon(Icons.copy_all_outlined, size: 17),
                 label: const Text('复制日志'),

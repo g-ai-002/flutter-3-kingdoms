@@ -63,7 +63,7 @@ class CityInfoCard extends StatelessWidget {
         Text(
           text,
           style: theme.textTheme.labelSmall?.copyWith(
-            color: bold ? null : colors.onSurfaceVariant,
+            color: bold ? colors.onSurface : colors.onSurfaceVariant,
             fontWeight: bold ? FontWeight.w600 : null,
           ),
         ),
@@ -107,19 +107,13 @@ class CityInfoCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         city.region,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                          fontSize: 10,
-                        ),
+                        style: hintStyle(context)?.copyWith(fontSize: 10),
                       ),
                     ],
                   ),
                   Text(
                     '${faction.name} · ${city.terrain.label} · ${city.troopType.label}',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                      fontSize: 10.5,
-                    ),
+                    style: hintStyle(context)?.copyWith(fontSize: 10.5),
                   ),
                 ],
               ),
@@ -155,8 +149,8 @@ class CityInfoCard extends StatelessWidget {
           enemies.isEmpty
               ? '四境安宁，暂无接壤敌城'
               : '邻敌：${enemies.map((e) => '${e.name}（${FactionDefs.nameOf(e.owner)}）').join('、')}',
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: enemies.isEmpty ? colors.onSurfaceVariant : colors.error,
+          style: hintStyle(context)?.copyWith(
+            color: enemies.isEmpty ? null : colors.error,
             fontSize: 10.5,
             height: 1.4,
           ),
@@ -164,10 +158,7 @@ class CityInfoCard extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '本月${city.acted ? '已下令' : '可下令'} · 金收入 ${city.goldIncome} · 粮收入 ${city.foodIncome}',
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: colors.onSurfaceVariant,
-            fontSize: 10.5,
-          ),
+          style: hintStyle(context)?.copyWith(fontSize: 10.5),
         ),
       ],
     );
