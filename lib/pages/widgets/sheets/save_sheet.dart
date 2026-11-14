@@ -9,23 +9,31 @@ import '../common.dart';
 
 /// 对局内存档面板：三个手动槽位，可覆盖写入或删除。
 Future<void> showSaveSheet(BuildContext context, GameController controller) =>
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => _SaveSheet(controller: controller),
+    showGameSheet<GameState?>(
+      context,
+      builder: (_) => _SavesSheet(controller: controller),
     );
 
-class _SaveSheet extends StatefulWidget {
-  const _SaveSheet({required this.controller});
+/// 首页读档面板：自动存档与三个手动槽位，点选后返回解出的对局。
+Future<GameState?> showLoadSheet(BuildContext context) =>
+    showGameSheet<GameState?>(context, builder: (_) => const _SavesSheet());
 
-  final GameController controller;
+/// 存读档共用一套槽位列表：写入模式列出三个手动槽位，
+/// 读取模式在前面多一项自动存档，其余加载与空槽表现一致。
+class _SavesSheet extends StatefulWidget {
+  const _SavesSheet({this.controller});
+
+  final GameController? controller;
 
   @override
-  State<_SaveSheet> createState() => _SaveSheetState();
+  State<_SavesSheet> createState() => _SavesSheetState();
 }
 
-class _SaveSheetState extends State<_SaveSheet> {
-  List<SaveSummary?> _slots = List.filled(SaveService.slots, null);
+class _SavesSheetState extends State<_SavesSheet> {
+  List<SaveSummary?>? _slots;
+  bool _busy = false;
+
+  bool get _writing => widget.controller != null;
 
   @override
   void initState() {
@@ -35,17 +43,19 @@ class _SaveSheetState extends State<_SaveSheet> {
 
   Future<void> _load() async {
     final slots = await SaveService.slotSummaries();
-    if (mounted) setState(() => _slots = slots);
+    final auto = _writing ? null : await SaveService.autoSummary();
+    if (!mounted) return;
+    setState(() => _slots = _writing ? slots : [auto, ...slots]);
   }
 
   Future<void> _save(int index) async {
-    final key = SaveService.slotKey(index + 1);
-    final ok = await SaveService.writeState(key, widget.controller.game);
+    final ok = await SaveService.writeState(
+      SaveService.slotKey(index + 1),
+      widget.controller!.game,
+    );
     await _load();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? '已存入槽位 ${index + 1}' : '存档写入失败')),
-    );
+    _toast(ok ? '已存入槽位 ${index + 1}' : '存档写入失败');
   }
 
   Future<void> _delete(int index) async {
@@ -53,122 +63,70 @@ class _SaveSheetState extends State<_SaveSheet> {
     await _load();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final game = widget.controller.game;
-    return SheetFrame(
-      title: '存档',
-      subtitle: '自动存档会在结束本月、战斗结束与退到后台时写入',
-      trailing: InfoChip(
-        text: formatYearMonth(game.year, game.month),
-        dense: true,
-        color: colors.primary,
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 10),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < SaveService.slots; i++) ...[
-              _SlotRow(
-                title: '槽位 ${i + 1}',
-                summary: _slots[i],
-                actionLabel: '存入',
-                onAction: () => _save(i),
-                onDelete: _slots[i] == null ? null : () => _delete(i),
-              ),
-              if (i != SaveService.slots - 1) const SizedBox(height: 8),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 首页读档面板：自动存档与三个手动槽位，点选后返回解出的对局。
-Future<GameState?> showLoadSheet(BuildContext context) =>
-    showModalBottomSheet<GameState?>(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => const _LoadSheet(),
-    );
-
-class _LoadSheet extends StatefulWidget {
-  const _LoadSheet();
-
-  @override
-  State<_LoadSheet> createState() => _LoadSheetState();
-}
-
-class _LoadSheetState extends State<_LoadSheet> {
-  List<SaveSummary?>? _summaries;
-  bool _busy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final slots = await SaveService.slotSummaries();
-    final auto = await SaveService.autoSummary();
-    if (!mounted) return;
-    setState(() => _summaries = [auto, ...slots]);
-  }
-
   Future<void> _open(int index) async {
     if (_busy) return;
-    final summaries = _summaries;
-    if (summaries == null || summaries[index] == null) return;
     setState(() => _busy = true);
     final key = index == 0 ? SaveService.autoKey : SaveService.slotKey(index);
     final state = await SaveService.loadState(key);
     if (!mounted) return;
     if (state == null) {
       setState(() => _busy = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('存档读取失败')));
+      _toast('存档读取失败');
       return;
     }
     Navigator.of(context).pop(state);
   }
 
+  void _toast(String text) => ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(text)));
+
+  String _titleOf(int index) {
+    if (_writing) return '槽位 ${index + 1}';
+    return index == 0 ? '自动存档' : '槽位 $index';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final summaries = _summaries;
+    final colors = Theme.of(context).colorScheme;
+    final slots = _slots;
+    final game = widget.controller?.game;
     return SheetFrame(
-      title: '读取存档',
-      subtitle: '自动存档会随对局推进更新；手动槽位在局内存档',
+      title: _writing ? '存档' : '读取存档',
+      subtitle: _writing ? '自动存档会在结束本月、战斗结束与退到后台时写入' : '自动存档会随对局推进更新；手动槽位在局内存档',
+      trailing: game == null
+          ? null
+          : InfoChip(
+              text: formatYearMonth(game.year, game.month),
+              dense: true,
+              color: colors.primary,
+            ),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 10),
-        child: summaries == null
-            ? const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < summaries.length; i++) ...[
-                    _SlotRow(
-                      title: i == 0 ? '自动存档' : '槽位 $i',
-                      summary: summaries[i],
-                      actionLabel: '读取',
-                      enabled: !_busy,
-                      onAction: () => _open(i),
-                    ),
-                    if (i != summaries.length - 1) const SizedBox(height: 8),
-                  ],
+      gap: 10,
+      child: slots == null
+          ? const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < slots.length; i++) ...[
+                  _SlotRow(
+                    title: _titleOf(i),
+                    summary: slots[i],
+                    actionLabel: _writing ? '存入' : '读取',
+                    enabled: !_busy,
+                    onAction: () => _writing ? _save(i) : _open(i),
+                    onDelete: _writing && slots[i] != null
+                        ? () => _delete(i)
+                        : null,
+                  ),
+                  if (i != slots.length - 1) const SizedBox(height: 8),
                 ],
-              ),
-      ),
+              ],
+            ),
     );
   }
 }
@@ -195,13 +153,13 @@ class _SlotRow extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final empty = summary == null;
-    return Container(
-      decoration: BoxDecoration(
+    return Material(
+      color: empty
+          ? colors.surface
+          : colors.primaryContainer.withValues(alpha: 0.3),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.outline),
-        color: empty
-            ? colors.surface
-            : colors.primaryContainer.withValues(alpha: 0.3),
+        side: BorderSide(color: colors.outline),
       ),
       child: ListTile(
         dense: true,

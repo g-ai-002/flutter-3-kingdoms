@@ -26,6 +26,7 @@ class CityInfoCard extends StatelessWidget {
 
   Widget _buildCompact(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final governor = controller.game.governorOf(city);
     return Wrap(
       spacing: 6,
@@ -39,33 +40,21 @@ class CityInfoCard extends StatelessWidget {
         ),
         InfoChip(text: city.terrain.label, dense: true),
         InfoChip(text: city.troopType.label, dense: true, color: appRed),
-        _metric(Icons.groups_outlined, '${city.troops}', theme, bold: true),
-        _metric(Icons.person_outline, governor?.name ?? '无太守', theme),
-        _metric(Icons.shield_outlined, '${city.defense}', theme),
-      ],
-    );
-  }
-
-  /// 紧凑模式的一枚小指标：图标 + 文字，视觉上并入同一行。
-  Widget _metric(
-    IconData icon,
-    String text,
-    ThemeData theme, {
-    bool bold = false,
-  }) {
-    final colors = theme.colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const SizedBox(width: 2),
-        Icon(icon, size: 13, color: colors.onSurfaceVariant),
-        const SizedBox(width: 3),
-        Text(
-          text,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: bold ? colors.onSurface : colors.onSurfaceVariant,
-            fontWeight: bold ? FontWeight.w600 : null,
-          ),
+        InfoChip(
+          icon: Icons.groups_outlined,
+          text: '${city.troops}',
+          plain: true,
+          color: colors.onSurface,
+        ),
+        InfoChip(
+          icon: Icons.person_outline,
+          text: governor?.name ?? '无太守',
+          plain: true,
+        ),
+        InfoChip(
+          icon: Icons.shield_outlined,
+          text: '${city.defense}',
+          plain: true,
         ),
       ],
     );
@@ -105,15 +94,12 @@ class CityInfoCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        city.region,
-                        style: hintStyle(context)?.copyWith(fontSize: 10),
-                      ),
+                      Text(city.region, style: hintStyle(context, size: 10)),
                     ],
                   ),
                   Text(
                     '${faction.name} · ${city.terrain.label} · ${city.troopType.label}',
-                    style: hintStyle(context)?.copyWith(fontSize: 10.5),
+                    style: hintStyle(context, size: 10.5),
                   ),
                 ],
               ),
@@ -149,16 +135,17 @@ class CityInfoCard extends StatelessWidget {
           enemies.isEmpty
               ? '四境安宁，暂无接壤敌城'
               : '邻敌：${enemies.map((e) => '${e.name}（${FactionDefs.nameOf(e.owner)}）').join('、')}',
-          style: hintStyle(context)?.copyWith(
-            color: enemies.isEmpty ? null : colors.error,
-            fontSize: 10.5,
+          style: hintStyle(
+            context,
+            size: 10.5,
             height: 1.4,
+            color: enemies.isEmpty ? colors.onSurfaceVariant : colors.error,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           '本月${city.acted ? '已下令' : '可下令'} · 金收入 ${city.goldIncome} · 粮收入 ${city.foodIncome}',
-          style: hintStyle(context)?.copyWith(fontSize: 10.5),
+          style: hintStyle(context, size: 10.5),
         ),
       ],
     );

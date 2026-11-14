@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../utils/map_layout.dart';
+import 'common.dart';
 
 /// 侧栏窄于该宽度时改用紧凑卡片：隐藏次要文字，操作只留图标。
 const double _compactRailWidth = 200;
@@ -102,7 +103,9 @@ class MapHud extends StatelessWidget {
                 ),
                 maxWidth,
               );
-              return Center(child: SizedBox.fromSize(size: size, child: map));
+              return Center(
+                child: SizedBox.fromSize(size: size, child: map),
+              );
             },
           ),
         ),
@@ -179,7 +182,9 @@ class MapHud extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final size = mapFitSize(constraints.biggest, maxWidth);
-              return Center(child: SizedBox.fromSize(size: size, child: map));
+              return Center(
+                child: SizedBox.fromSize(size: size, child: map),
+              );
             },
           ),
         ),
@@ -219,17 +224,10 @@ class MapHud extends StatelessWidget {
             padding: compact
                 ? const EdgeInsets.symmetric(horizontal: 8, vertical: 6)
                 : const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
+            decoration: cardDecoration(
+              context,
+              radius: compact ? 14 : 16,
               color: colors.surface.withValues(alpha: isDark ? 0.92 : 0.95),
-              borderRadius: BorderRadius.circular(compact ? 14 : 16),
-              border: Border.all(color: colors.outline.withValues(alpha: 0.9)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
             child: child,
           ),

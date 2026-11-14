@@ -327,30 +327,25 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     final city = controller.selectedCity;
     if (city == null) {
       return Builder(
-        builder: (ctx) {
-          final colors = Theme.of(ctx).colorScheme;
-          final compact = HudScope.compactOf(ctx);
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.touch_app_outlined,
-                size: 15,
-                color: colors.onSurfaceVariant,
+        builder: (ctx) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.touch_app_outlined,
+              size: 15,
+              color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                HudScope.compactOf(ctx) ? '点选城池' : '点选城池查看详情；选中本方城池后可下令',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: hintStyle(ctx),
               ),
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(
-                  compact ? '点选城池' : '点选城池查看详情；选中本方城池后可下令',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(ctx).textTheme.labelSmall
-                      ?.copyWith(color: colors.onSurfaceVariant),
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       );
     }
     return Builder(
@@ -406,13 +401,13 @@ class _FactionHudCard extends StatelessWidget {
     final faction = game.player;
     final def = FactionDefs.byId(game.playerFaction);
     final compact = HudScope.compactOf(context);
-    final hint = hintStyle(context);
+    final hint = hintStyle(context, size: compact ? 9.5 : 10);
     final identity = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          '${def.ruler} · ${def.name}',
+          def.display,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleSmall?.copyWith(
@@ -423,7 +418,7 @@ class _FactionHudCard extends StatelessWidget {
           formatYearMonth(game.year, game.month),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: hint?.copyWith(fontSize: compact ? 9.5 : 10),
+          style: hint,
         ),
         // 侧栏可能只有一百多像素宽：紧凑模式把钱粮并进第二三行，不另起标签。
         if (compact)
@@ -431,7 +426,7 @@ class _FactionHudCard extends StatelessWidget {
             '金 ${faction.gold} · 粮 ${faction.food}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: hint?.copyWith(fontSize: 9.5),
+            style: hint,
           ),
       ],
     );
@@ -442,7 +437,11 @@ class _FactionHudCard extends StatelessWidget {
     if (compact) {
       return Row(
         mainAxisSize: MainAxisSize.min,
-        children: [seal, const SizedBox(width: 7), Flexible(child: identity)],
+        children: [
+          seal,
+          const SizedBox(width: 7),
+          Flexible(child: identity),
+        ],
       );
     }
     return Wrap(

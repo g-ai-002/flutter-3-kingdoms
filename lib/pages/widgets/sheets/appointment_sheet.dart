@@ -12,10 +12,8 @@ Future<void> showAppointmentSheet(
   GameController controller,
   City city,
 ) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  return showGameSheet<void>(
+    context,
     builder: (sheetContext) => StatefulBuilder(
       builder: (context, setSheetState) {
         final theme = Theme.of(context);
@@ -30,13 +28,13 @@ Future<void> showAppointmentSheet(
             style: hintStyle(context),
           ),
           scrollable: true,
+          gap: 6,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 6),
               if (residents.isEmpty)
-                const EmptyHint('城中暂无武将')
+                const HintText('城中暂无武将', body: true)
               else
                 for (final general in residents)
                   _GeneralTile(
@@ -51,12 +49,12 @@ Future<void> showAppointmentSheet(
                     },
                   ),
               const Divider(height: 20),
-              const SheetLabel(
+              const HintText(
                 '在野武将 · 登用花费 ${OrderService.recruitGeneralCost} 金',
               ),
               const SizedBox(height: 6),
               if (free.isEmpty)
-                const EmptyHint('城中暂无在野名士')
+                const HintText('城中暂无在野名士', body: true)
               else
                 for (final general in free)
                   _GeneralTile(

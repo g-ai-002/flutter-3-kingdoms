@@ -10,14 +10,10 @@ Future<void> showChronicleSheet(
   BuildContext context,
   GameController controller,
 ) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (sheetContext) => SizedBox(
-      height: MediaQuery.sizeOf(sheetContext).height * 0.72,
-      child: _ChronicleSheet(controller: controller),
-    ),
+  return showGameSheet<void>(
+    context,
+    tall: true,
+    builder: (sheetContext) => _ChronicleSheet(controller: controller),
   );
 }
 
@@ -40,7 +36,9 @@ class _ChronicleSheetState extends State<_ChronicleSheet> {
     final colors = Theme.of(context).colorScheme;
     final game = widget.controller.game;
     // 只取内存里保留的尾部战报，长篇对局不必反转整段历史。
-    final entries = game.recentChronicle.toList().reversed
+    final entries = game.recentChronicle
+        .toList()
+        .reversed
         .where(
           (entry) =>
               !_onlyMine ||
@@ -66,7 +64,7 @@ class _ChronicleSheetState extends State<_ChronicleSheet> {
         const Divider(height: 1),
         Expanded(
           child: entries.isEmpty
-              ? const Center(child: EmptyHint('暂无战报'))
+              ? const Center(child: HintText('暂无战报', body: true))
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
                   itemCount: entries.length,

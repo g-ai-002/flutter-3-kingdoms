@@ -12,10 +12,8 @@ Future<void> showFactionOverviewSheet(
   BuildContext context,
   GameController controller,
 ) {
-  return showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    isScrollControlled: true,
+  return showGameSheet<void>(
+    context,
     builder: (sheetContext) => StatefulBuilder(
       builder: (context, refresh) {
         final game = controller.game;
@@ -25,23 +23,19 @@ Future<void> showFactionOverviewSheet(
           subtitle: '遣使可停战、联姻或劝降；盟约期间两不相犯',
           scrollable: true,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (envoy != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: SheetLabel(
-                      '使者 ${envoy.name} · 政治 ${envoy.politics}',
-                    ),
-                  ),
-                for (final def in FactionDefs.all)
-                  _factionRow(context, controller, def, refresh),
-              ],
-            ),
+          gap: 10,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (envoy != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: HintText('使者 ${envoy.name} · 政治 ${envoy.politics}'),
+                ),
+              for (final def in FactionDefs.all)
+                _factionRow(context, controller, def, refresh),
+            ],
           ),
         );
       },
@@ -83,7 +77,6 @@ Future<void> _openEnvoyDialog(
   final move = await showDialog<DiplomaticMove>(
     context: context,
     builder: (dialogContext) {
-      final theme = Theme.of(dialogContext);
       return AlertDialog(
         title: Text('遣使 ${def.ruler}'),
         content: Column(
@@ -92,9 +85,7 @@ Future<void> _openEnvoyDialog(
           children: [
             Text(
               '金钱无论成败都会消耗；实力越强、使者政治越高，成算越大。',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: hintStyle(dialogContext),
             ),
             const SizedBox(height: 10),
             for (final move in DiplomaticMove.values) ...[
@@ -171,10 +162,7 @@ class _MoveButton extends StatelessWidget {
                   '${move.label} · ${move.goldCost} 金',
                   style: theme.textTheme.titleSmall?.copyWith(fontSize: 13),
                 ),
-                Text(
-                  move.summary,
-                  style: hintStyle(context)?.copyWith(fontSize: 10.5),
-                ),
+                Text(move.summary, style: hintStyle(context, size: 10.5)),
               ],
             ),
           ),
@@ -213,6 +201,11 @@ class _FactionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final badge = !faction.alive
+        ? const InfoChip(text: '已亡', dense: true, color: Colors.grey)
+        : isPlayer
+        ? InfoChip(text: '我方', dense: true, color: colors.primary)
+        : null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
       child: Container(
@@ -237,27 +230,12 @@ class _FactionRow extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '${def.ruler} · ${def.name}',
+                        def.display,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontSize: 13,
                         ),
                       ),
-                      if (isPlayer) ...[
-                        const SizedBox(width: 5),
-                        InfoChip(
-                          text: '我方',
-                          dense: true,
-                          color: colors.primary,
-                        ),
-                      ],
-                      if (!faction.alive) ...[
-                        const SizedBox(width: 5),
-                        const InfoChip(
-                          text: '已亡',
-                          dense: true,
-                          color: Colors.grey,
-                        ),
-                      ],
+                      if (badge != null) ...[const SizedBox(width: 5), badge],
                     ],
                   ),
                   Wrap(

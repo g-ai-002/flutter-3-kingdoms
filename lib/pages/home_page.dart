@@ -54,13 +54,7 @@ class _HomePageState extends State<HomePage> {
       goldRatio: settings.supply.ratio,
       seed: DateTime.now().microsecondsSinceEpoch,
     );
-    await SaveService.writeState(SaveService.autoKey, controller.game);
-    if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => GamePage(controller: controller)),
-    );
-    controller.dispose();
-    await _refreshAutoSave();
+    await _enter(controller);
   }
 
   Future<void> _continueGame() async {
@@ -85,12 +79,18 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _play(GameState state) async {
     SoundService.tap();
-    await SaveService.writeState(SaveService.autoKey, state);
-    if (!mounted) return;
-    final controller = GameController.fromState(
-      state,
-      seed: DateTime.now().microsecondsSinceEpoch,
+    await _enter(
+      GameController.fromState(
+        state,
+        seed: DateTime.now().microsecondsSinceEpoch,
+      ),
     );
+  }
+
+  /// 开局与读档共用：写自动存档、进入对局页，返回后刷新首页。
+  Future<void> _enter(GameController controller) async {
+    await SaveService.writeState(SaveService.autoKey, controller.game);
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => GamePage(controller: controller)),
     );
@@ -170,10 +170,7 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(height: 20),
                         Text(
                           'v${AppConstants.version} · 单机离线 · 无需联网',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.onSurfaceVariant,
-                            fontSize: 11,
-                          ),
+                          style: hintStyle(context, size: 11),
                         ),
                       ],
                     ),
@@ -293,9 +290,7 @@ class _AutoSaveBanner extends StatelessWidget {
             '自动存档 · ${summary.label}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
+            style: hintStyle(context),
           ),
           trailing: IconButton(
             tooltip: '所有存档',

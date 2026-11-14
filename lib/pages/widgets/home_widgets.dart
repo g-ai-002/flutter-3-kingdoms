@@ -172,10 +172,7 @@ class FactionPickCard extends StatelessWidget {
     final generals = Scenario.generalDefs
         .where((g) => g.factionId == def.id)
         .length;
-    final hint = theme.textTheme.labelSmall?.copyWith(
-      color: colors.onSurfaceVariant,
-      fontSize: 10,
-    );
+    final hint = hintStyle(context, size: 10);
     return Material(
       color: selected
           ? colors.primaryContainer.withValues(alpha: 0.55)
@@ -204,7 +201,7 @@ class FactionPickCard extends StatelessWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            '${def.ruler} · ${def.name}',
+                            def.display,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleSmall,
@@ -270,11 +267,8 @@ class StartOptions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final hint = theme.textTheme.labelSmall?.copyWith(
-      color: colors.onSurfaceVariant,
-    );
+    final colors = Theme.of(context).colorScheme;
+    final hint = hintStyle(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -339,11 +333,8 @@ class DifficultyPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final hint = theme.textTheme.labelSmall?.copyWith(
-      color: colors.onSurfaceVariant,
-    );
+    final colors = Theme.of(context).colorScheme;
+    final hint = hintStyle(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

@@ -2,11 +2,61 @@ import 'package:flutter/material.dart';
 
 import '../../models/faction.dart';
 
-/// 次要说明文字的统一样式：小号 + 弱化色。
-TextStyle? hintStyle(BuildContext context) {
+/// 次要说明文字的统一样式：小号 + 弱化色，可按场景覆写字号与行高。
+TextStyle? hintStyle(
+  BuildContext context, {
+  double? size,
+  Color? color,
+  double? height,
+}) {
   final theme = Theme.of(context);
   return theme.textTheme.labelSmall?.copyWith(
-    color: theme.colorScheme.onSurfaceVariant,
+    color: color ?? theme.colorScheme.onSurfaceVariant,
+    fontSize: size,
+    height: height,
+  );
+}
+
+/// 底部面板统一开合：拖动条、滚动控制与高面板比例都在这里决定。
+Future<T?> showGameSheet<T>(
+  BuildContext context, {
+  required WidgetBuilder builder,
+  bool tall = false,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: tall
+        ? (sheetContext) => SizedBox(
+            height: MediaQuery.sizeOf(sheetContext).height * 0.72,
+            child: builder(sheetContext),
+          )
+        : builder,
+  );
+}
+
+/// 悬浮卡片与面板共用的描边容器：圆角、细边与浅阴影。
+BoxDecoration cardDecoration(
+  BuildContext context, {
+  double radius = 16,
+  Color? color,
+  bool shadow = true,
+}) {
+  final colors = Theme.of(context).colorScheme;
+  return BoxDecoration(
+    color: color ?? colors.surface,
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(color: colors.outline.withValues(alpha: 0.9)),
+    boxShadow: shadow
+        ? [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ]
+        : null,
   );
 }
 
@@ -138,18 +188,7 @@ class SectionCard extends StatelessWidget {
     final colors = theme.colorScheme;
     return Container(
       padding: padding,
-      decoration: BoxDecoration(
-        color: color ?? colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.9)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: cardDecoration(context, color: color),
       child: Material(
         type: MaterialType.transparency,
         child: Column(
@@ -190,7 +229,7 @@ class SectionCard extends StatelessWidget {
   }
 }
 
-/// 小标签：资源、兵种与状态提示。
+/// 小标签：资源、兵种与状态提示；[plain] 时只留图标与文字，不进胶囊底色。
 class InfoChip extends StatelessWidget {
   const InfoChip({
     super.key,
@@ -198,18 +237,38 @@ class InfoChip extends StatelessWidget {
     this.icon,
     this.color,
     this.dense = false,
+    this.plain = false,
   });
 
   final String text;
   final IconData? icon;
   final Color? color;
   final bool dense;
+  final bool plain;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final tone = color ?? colors.onSurfaceVariant;
+    final content = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: dense ? 11 : 13, color: tone),
+          const SizedBox(width: 3),
+        ],
+        Text(
+          text,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: tone,
+            fontSize: dense ? 10 : 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+    if (plain) return content;
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: dense ? 6 : 8,
@@ -219,23 +278,7 @@ class InfoChip extends StatelessWidget {
         color: tone.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: dense ? 11 : 13, color: tone),
-            const SizedBox(width: 3),
-          ],
-          Text(
-            text,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: tone,
-              fontSize: dense ? 10 : 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 }
@@ -310,6 +353,7 @@ class SheetFrame extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.scrollable = false,
+    this.gap = 0,
     this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 12),
   });
 
@@ -318,6 +362,9 @@ class SheetFrame extends StatelessWidget {
   final Widget? trailing;
   final Widget child;
   final bool scrollable;
+
+  /// 标题与正文之间的间距，各面板不必再包一层 Padding。
+  final double gap;
   final EdgeInsets padding;
 
   @override
@@ -327,6 +374,7 @@ class SheetFrame extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SheetHeader(title: title, subtitle: subtitle, trailing: trailing),
+        if (gap > 0) SizedBox(height: gap),
         child,
       ],
     );
@@ -339,38 +387,29 @@ class SheetFrame extends StatelessWidget {
   }
 }
 
-/// 面板内的分区小标题。
-class SheetLabel extends StatelessWidget {
-  const SheetLabel(this.text, {super.key});
+/// 面板内的提示小字：分区小标题用默认样式，空状态正文用 [body]。
+class HintText extends StatelessWidget {
+  const HintText(
+    this.text, {
+    super.key,
+    this.body = false,
+    this.center = false,
+  });
 
   final String text;
+  final bool body;
+  final bool center;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final style =
+        (body ? theme.textTheme.bodySmall : theme.textTheme.labelSmall)
+            ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     return Text(
       text,
-      style: theme.textTheme.labelSmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-    );
-  }
-}
-
-/// 面板内的空状态提示。
-class EmptyHint extends StatelessWidget {
-  const EmptyHint(this.text, {super.key});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      text,
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
+      style: style,
+      textAlign: center ? TextAlign.center : null,
     );
   }
 }

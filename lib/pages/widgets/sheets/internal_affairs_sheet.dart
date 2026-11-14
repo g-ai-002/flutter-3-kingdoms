@@ -24,9 +24,8 @@ Future<CityAction?> showInternalAffairsSheet(
 ) {
   final colors = Theme.of(context).colorScheme;
   final faction = controller.game.player;
-  return showModalBottomSheet<CityAction>(
-    context: context,
-    showDragHandle: true,
+  return showGameSheet<CityAction>(
+    context,
     builder: (sheetContext) => SheetFrame(
       title: '${city.name} · 内政',
       subtitle: '金 ${faction.gold} · 粮 ${faction.food} · 每城每月限一条指令',
@@ -35,23 +34,21 @@ Future<CityAction?> showInternalAffairsSheet(
         color: city.acted ? colors.error : appJade,
         dense: true,
       ),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 10),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final action in CityAction.values)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 7),
-                child: _ActionTile(
-                  action: action,
-                  enabled: !city.acted && _affordable(faction, action),
-                  onTap: () => Navigator.of(sheetContext).pop(action),
-                ),
+      gap: 10,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final action in CityAction.values)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 7),
+              child: _ActionTile(
+                action: action,
+                enabled: !city.acted && _affordable(faction, action),
+                onTap: () => Navigator.of(sheetContext).pop(action),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     ),
   );
@@ -85,66 +82,50 @@ class _ActionTile extends StatelessWidget {
       child: InkWell(
         onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
+        child: ListTile(
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+          leading: Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: tone.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(actionIcon(action), size: 18, color: tone),
+          ),
+          title: Text(
+            action.label,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontSize: 13,
+              color: enabled ? colors.onSurface : colors.onSurfaceVariant,
+            ),
+          ),
+          subtitle: Text(
+            action.description,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: hintStyle(context, size: 10.5),
+          ),
+          trailing: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: tone.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(9),
+              if (action.goldCost > 0)
+                InfoChip(
+                  text: '金 ${action.goldCost}',
+                  dense: true,
+                  color: appGold,
                 ),
-                child: Icon(actionIcon(action), size: 18, color: tone),
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      action.label,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontSize: 13,
-                        color: enabled
-                            ? colors.onSurface
-                            : colors.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      action.description,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                        fontSize: 10.5,
-                      ),
-                    ),
-                  ],
+              if (action.foodCost > 0) ...[
+                const SizedBox(height: 3),
+                InfoChip(
+                  text: '粮 ${action.foodCost}',
+                  dense: true,
+                  color: appJade,
                 ),
-              ),
-              const SizedBox(width: 6),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (action.goldCost > 0)
-                    InfoChip(
-                      text: '金 ${action.goldCost}',
-                      dense: true,
-                      color: appGold,
-                    ),
-                  if (action.foodCost > 0) ...[
-                    const SizedBox(height: 3),
-                    InfoChip(
-                      text: '粮 ${action.foodCost}',
-                      dense: true,
-                      color: appJade,
-                    ),
-                  ],
-                ],
-              ),
+              ],
             ],
           ),
         ),

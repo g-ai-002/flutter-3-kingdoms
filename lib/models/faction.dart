@@ -21,6 +21,9 @@ class FactionDef {
   final Color color;
   final int gold;
   final int food;
+
+  /// 界面统一的「君主 · 国号」写法。
+  String get display => '$ruler · $name';
 }
 
 /// 势力运行时状态：钱粮与存亡。

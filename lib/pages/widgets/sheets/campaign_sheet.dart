@@ -28,10 +28,8 @@ Future<CampaignRequest?> showCampaignSheet(
   City source, {
   City? preferredTarget,
 }) {
-  return showModalBottomSheet<CampaignRequest>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  return showGameSheet<CampaignRequest>(
+    context,
     builder: (sheetContext) => _CampaignSheet(
       controller: controller,
       source: source,
@@ -113,6 +111,7 @@ class _CampaignSheetState extends State<_CampaignSheet> {
         color: colors.primary,
       ),
       scrollable: true,
+      gap: 10,
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
@@ -122,8 +121,7 @@ class _CampaignSheetState extends State<_CampaignSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 10),
-          const SheetLabel('择一敌城'),
+          const HintText('择一敌城'),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -142,10 +140,11 @@ class _CampaignSheetState extends State<_CampaignSheet> {
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(11),
-            decoration: BoxDecoration(
+            decoration: cardDecoration(
+              context,
+              radius: 12,
               color: colors.surfaceContainerHighest.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colors.outline),
+              shadow: false,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,7 +189,7 @@ class _CampaignSheetState extends State<_CampaignSheet> {
             ),
           ),
           const SizedBox(height: 12),
-          const SheetLabel('择一主将'),
+          const HintText('择一主将'),
           const SizedBox(height: 6),
           if (_generals.isEmpty)
             Text(
