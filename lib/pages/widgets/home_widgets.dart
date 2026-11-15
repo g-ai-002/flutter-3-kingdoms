@@ -3,7 +3,6 @@ import 'package:material_ui/material_ui.dart';
 import '../../game/data/scenario.dart';
 import '../../models/difficulty.dart';
 import '../../models/faction.dart';
-import '../../services/sound_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/constants.dart';
 import 'common.dart';
@@ -113,10 +112,7 @@ class SegmentedPicker<T> extends StatelessWidget {
           ButtonSegment(value: option, label: Text(labelOf(option))),
       ],
       selected: {value},
-      onSelectionChanged: (items) {
-        SoundService.tap();
-        onChanged(items.first);
-      },
+      onSelectionChanged: (items) => onChanged(items.first),
     );
   }
 }

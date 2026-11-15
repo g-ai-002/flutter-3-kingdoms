@@ -37,12 +37,16 @@ class FactionDefs {
     FactionDef(id: 'dong', name: '董', ruler: '董卓', title: '相国 · 西凉铁骑入洛阳', motto: '顺我者昌，逆我者亡', color: Color(0xFF8A6A32), gold: 1500, food: 2300),
   ];
 
-  static FactionDef byId(String id) =>
-      all.firstWhere((item) => item.id == id, orElse: () => all.first);
+  /// 按 id 查势力：地图每层重录都按城主取色，用表查避免逐个线性扫描。
+  static final Map<String, FactionDef> _byId = {
+    for (final def in all) def.id: def,
+  };
+
+  static FactionDef byId(String id) => _byId[id] ?? all.first;
 
   static String nameOf(String id) => byId(id).name;
 
   static Color colorOf(String id) => byId(id).color;
 
-  static bool isKnown(String id) => all.any((item) => item.id == id);
+  static bool isKnown(String id) => _byId.containsKey(id);
 }

@@ -5,7 +5,6 @@ import '../utils/system_ui.dart';
 /// 朱砂、金铜与宣纸构成的三国视觉基调。
 const Color appRed = Color(0xFF8C2F24);
 const Color appGold = Color(0xFFC8A15A);
-const Color appInk = Color(0xFF241811);
 const Color appParchment = Color(0xFFF3E7CE);
 const Color appJade = Color(0xFF2F6B58);
 

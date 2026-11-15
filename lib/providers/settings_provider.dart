@@ -34,12 +34,6 @@ class SettingsProvider extends ChangeNotifier {
     unawaited(MusicService.setEnabled(value));
   });
 
-  bool get hapticsEnabled => _storage.hapticsEnabled;
-  Future<void> setHapticsEnabled(bool value) => _update(() async {
-    await _storage.setHapticsEnabled(value);
-    _syncFeedback();
-  });
-
   LogicRate get logicRate => _storage.logicRate;
   Future<void> setLogicRate(LogicRate value) =>
       _update(() => _storage.setLogicRate(value));
@@ -60,8 +54,7 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setSupply(StartSupply value) =>
       _update(() => _storage.setStartGoldRatio(value.ratio));
 
-  void _syncFeedback() =>
-      SoundService.configure(sound: soundEnabled, haptics: hapticsEnabled);
+  void _syncFeedback() => SoundService.configure(sound: soundEnabled);
 
   Future<void> _update(Future<void> Function() write) async {
     await write();

@@ -108,7 +108,6 @@ class BattleResult {
     required this.attackerWon, required this.retreated,
     required this.attackerRemaining, required this.defenderRemaining,
     required this.attackerLosses, required this.defenderLosses,
-    required this.rounds,
   });
 
   final bool attackerWon;
@@ -117,5 +116,4 @@ class BattleResult {
   final int defenderRemaining;
   final int attackerLosses;
   final int defenderLosses;
-  final int rounds;
 }

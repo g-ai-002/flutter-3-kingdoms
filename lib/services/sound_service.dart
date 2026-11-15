@@ -1,24 +1,22 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 
 import 'log_service.dart';
 import 'tone_synth.dart';
 
 /// 游戏内的提示音类型。
-enum GameSound { tap, order, recruit, battle, victory, defeat, turn }
+enum GameSound { tap, order, battle, victory, defeat, turn }
 
-/// 音效与触感反馈。
+/// 音效反馈：音效在运行时合成，不随包携带音频文件。
 ///
-/// 音效由 [synthesizeWav] 在运行时合成，不随包携带音频文件；合成好的 WAV
-/// 交给 flutter_soloud 的内存音源播放，Android、Windows 与 Web 共用一套实现。
+/// 合成好的 WAV 交给 flutter_soloud 的内存音源播放，Android、Windows 与 Web
+/// 共用一套实现。
 class SoundService {
   SoundService._();
 
   static bool soundEnabled = true;
-  static bool hapticsEnabled = true;
 
   /// 测试注入的音频出口，非空时不再触碰平台播放器。
   @visibleForTesting
@@ -38,11 +36,6 @@ class SoundService {
     GameSound.order: [
       SynthNote(frequency: 523.25, start: 0, duration: 0.09, gain: 0.5),
       SynthNote(frequency: 783.99, start: 0.08, duration: 0.16, gain: 0.45),
-    ],
-    GameSound.recruit: [
-      SynthNote(frequency: 523.25, start: 0, duration: 0.12, gain: 0.45),
-      SynthNote(frequency: 659.25, start: 0.1, duration: 0.12, gain: 0.45),
-      SynthNote(frequency: 783.99, start: 0.2, duration: 0.24, gain: 0.5),
     ],
     GameSound.battle: [
       SynthNote(frequency: 92, start: 0, duration: 0.22, gain: 0.8, noise: 0.45),
@@ -67,10 +60,7 @@ class SoundService {
     ],
   };
 
-  static void configure({required bool sound, required bool haptics}) {
-    soundEnabled = sound;
-    hapticsEnabled = haptics;
-  }
+  static void configure({required bool sound}) => soundEnabled = sound;
 
   /// 预合成音效并载入 SoLoud 音源；失败时保持静默，不影响对局。
   static Future<void> init() => _ensureLoaded();
@@ -111,31 +101,14 @@ class SoundService {
   static Uint8List clipOf(GameSound sound) =>
       _clips.putIfAbsent(sound, () => synthesizeWav(_presets[sound]!));
 
-  /// 轻触反馈：只走触感，不播放提示音。
-  static void tap() {
-    if (hapticsEnabled) HapticFeedback.selectionClick();
-  }
-
   static void play(GameSound sound) {
-    if (soundEnabled) {
-      final target = sink;
-      if (target != null) {
-        target(sound);
-      } else {
-        unawaited(_play(sound));
-      }
+    if (!soundEnabled) return;
+    final target = sink;
+    if (target != null) {
+      target(sound);
+    } else {
+      unawaited(_play(sound));
     }
-    if (!hapticsEnabled) return;
-    final haptic = switch (sound) {
-      GameSound.tap => HapticFeedback.selectionClick,
-      GameSound.order => HapticFeedback.lightImpact,
-      GameSound.recruit => HapticFeedback.mediumImpact,
-      GameSound.battle => HapticFeedback.heavyImpact,
-      GameSound.victory => HapticFeedback.vibrate,
-      GameSound.defeat => HapticFeedback.heavyImpact,
-      GameSound.turn => HapticFeedback.selectionClick,
-    };
-    haptic();
   }
 
   static Future<void> _play(GameSound sound) async {
@@ -175,6 +148,5 @@ class SoundService {
     _loading = null;
     _loadFailed = false;
     soundEnabled = true;
-    hapticsEnabled = true;
   }
 }

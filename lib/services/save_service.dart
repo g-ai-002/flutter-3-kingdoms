@@ -19,12 +19,14 @@ class SaveService {
 
   static String slotKey(int slot) => 'save_slot_$slot';
 
+  /// 摘要键与存档键一一对应：首页「继续征战」只读这段小 JSON。
+  static String _summaryKey(String key) => '${key}__summary';
+
   static Future<SharedPreferences> _prefs() => SharedPreferences.getInstance();
 
   static Future<bool> write(String key, String data) async {
     try {
       final prefs = await _prefs();
-      writeCount++;
       return await prefs.setString(key, data);
     } catch (e, stack) {
       LogService.error('写入存档失败: $key', e, stack);
@@ -33,9 +35,13 @@ class SaveService {
   }
 
   static Future<bool> writeState(String key, GameState state) async {
+    writeCount++;
     final data = SaveCodec.encode(state);
     LogService.info('保存存档: $key (${data.length} 字节)');
-    return write(key, data);
+    final ok = await write(key, data);
+    // 与存档一起写入摘要，首页与槽位列表不必解析整份存档。
+    if (ok) await write(_summaryKey(key), SaveCodec.summaryJson(state));
+    return ok;
   }
 
   static Future<String?> read(String key) async {
@@ -52,15 +58,17 @@ class SaveService {
     try {
       final prefs = await _prefs();
       await prefs.remove(key);
+      await prefs.remove(_summaryKey(key));
     } catch (e, stack) {
       LogService.error('删除存档失败: $key', e, stack);
     }
   }
 
-  /// 读取存档摘要；缺失或损坏时返回 null，不抛出。
+  /// 读取存档摘要；优先轻量摘要，旧存档没有摘要时回退解析整份存档。
   static Future<SaveSummary?> summaryOf(String key) async {
-    final data = await read(key);
-    if (data == null) return null;
+    final save = await read(key);
+    if (save == null) return null;
+    final data = await read(_summaryKey(key)) ?? save;
     try {
       return SaveCodec.summary(data);
     } catch (e, stack) {

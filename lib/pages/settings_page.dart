@@ -65,13 +65,6 @@ class SettingsPage extends StatelessWidget {
                   value: settings.musicEnabled,
                   onChanged: settings.setMusicEnabled,
                 ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('震动反馈'),
-                  subtitle: const Text('移动端点击与战况震动'),
-                  value: settings.hapticsEnabled,
-                  onChanged: settings.setHapticsEnabled,
-                ),
               ],
             ),
           ),

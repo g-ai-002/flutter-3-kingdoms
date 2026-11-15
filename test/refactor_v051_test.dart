@@ -12,7 +12,6 @@ import 'package:flutter_3_kingdoms/models/game_state.dart';
 import 'package:flutter_3_kingdoms/pages/widgets/common.dart';
 import 'package:flutter_3_kingdoms/pages/widgets/game_hud.dart';
 import 'package:flutter_3_kingdoms/pages/widgets/home_widgets.dart';
-import 'package:flutter_3_kingdoms/services/sound_service.dart';
 
 class _MinRandom implements Random {
   @override
@@ -259,8 +258,6 @@ void main() {
   });
 
   testWidgets('首页分段选择器回传选中项', (tester) async {
-    SoundService.hapticsEnabled = false;
-    addTearDown(() => SoundService.hapticsEnabled = true);
     Difficulty? picked;
     await tester.pumpWidget(
       MaterialApp(

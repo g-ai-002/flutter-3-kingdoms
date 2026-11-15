@@ -158,14 +158,12 @@ class FactionSeal extends StatelessWidget {
 /// 数值条：城池的农业、商业、治安、训练与城防。
 class StatBar extends StatelessWidget {
   const StatBar({
-    super.key, required this.label, required this.value,
-    this.color, this.compact = false,
+    super.key, required this.label, required this.value, this.color,
   });
 
   final String label;
   final int value;
   final Color? color;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -175,11 +173,11 @@ class StatBar extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          width: compact ? 32 : 40,
+          width: 32,
           child: Text(
             label,
             style: theme.textTheme.labelSmall?.copyWith(
-              fontSize: compact ? 10 : 11,
+              fontSize: 10,
               color: colors.onSurfaceVariant,
             ),
           ),
@@ -189,7 +187,7 @@ class StatBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: value / 100,
-              minHeight: compact ? 5 : 6,
+              minHeight: 5,
               backgroundColor: colors.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation(accent),
             ),
@@ -201,7 +199,7 @@ class StatBar extends StatelessWidget {
             '$value',
             textAlign: TextAlign.right,
             style: theme.textTheme.labelSmall?.copyWith(
-              fontSize: compact ? 10 : 11,
+              fontSize: 10,
               color: colors.onSurface,
               fontWeight: FontWeight.w600,
             ),

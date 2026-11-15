@@ -150,7 +150,6 @@ void main() {
         defenderRemaining: 0,
         attackerLosses: 500,
         defenderLosses: 3600,
-        rounds: 4,
       ),
     );
     expect(target.owner, 'wei');
@@ -190,7 +189,6 @@ void main() {
         defenderRemaining: 1500,
         attackerLosses: 1200,
         defenderLosses: 900,
-        rounds: 5,
       ),
     );
     expect(target.owner, 'yuan');

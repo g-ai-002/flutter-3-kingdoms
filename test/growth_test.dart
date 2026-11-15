@@ -112,7 +112,6 @@ void main() {
         defenderRemaining: 0,
         attackerLosses: 1200,
         defenderLosses: 3200,
-        rounds: 5,
       ),
     );
     expect(attacker.xp, GrowthService.captureXp);
@@ -139,7 +138,6 @@ void main() {
         defenderRemaining: 1900,
         attackerLosses: 1300,
         defenderLosses: 500,
-        rounds: 3,
       ),
       attackerFaction: 'wei',
       random: Random(3),

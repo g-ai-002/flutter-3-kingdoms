@@ -108,7 +108,6 @@ void main() {
       defenderRemaining: 0,
       attackerLosses: 1200,
       defenderLosses: 3200,
-      rounds: 5,
     );
     controller.finishPlayerBattle(result);
 
@@ -143,7 +142,6 @@ void main() {
         defenderRemaining: 1500,
         attackerLosses: 1200,
         defenderLosses: 900,
-        rounds: 4,
       ),
     );
     expect(target.owner, 'dong');

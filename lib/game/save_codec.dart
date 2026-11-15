@@ -14,7 +14,6 @@ class SaveSummary {
     required this.factionId,
     required this.cityCount,
     this.scenarioId = '',
-    this.savedAt,
   });
 
   final int year;
@@ -22,7 +21,6 @@ class SaveSummary {
   final String factionId;
   final int cityCount;
   final String scenarioId;
-  final DateTime? savedAt;
 
   String get label {
     final scenario = Scenario.byId(scenarioId);
@@ -41,10 +39,18 @@ class SaveCodec {
 
   static String encode(GameState state) => jsonEncode(_toMap(state));
 
+  /// 写存档时顺带落一份轻量摘要：首页只解析这一小段，不必碰整份存档。
+  static String summaryJson(GameState state) => jsonEncode({
+    'year': state.year,
+    'month': state.month,
+    'player': state.playerFaction,
+    'scenario': state.scenarioId,
+    'cityCount': state.cityCount(state.playerFaction),
+  });
+
   static Map<String, dynamic> _toMap(GameState state) {
     return {
       'v': version,
-      'savedAt': DateTime.now().toIso8601String(),
       'year': state.year,
       'month': state.month,
       'player': state.playerFaction,
@@ -102,18 +108,19 @@ class SaveCodec {
   static SaveSummary summary(String source) {
     final raw = _parse(source);
     final player = raw['player'] as String? ?? 'wei';
-    final cities = raw['cities'] as Map<String, dynamic>? ?? const {};
-    final owned = cities.values.where((value) {
-      final row = value as List;
-      return row.isNotEmpty && row.first == player;
-    }).length;
+    final cities = raw['cities'] as Map<String, dynamic>?;
+    final owned = cities == null
+        ? (raw['cityCount'] as num?)?.toInt() ?? 0
+        : cities.values.where((value) {
+            final row = value as List;
+            return row.isNotEmpty && row.first == player;
+          }).length;
     return SaveSummary(
       year: (raw['year'] as num?)?.toInt() ?? 196,
       month: (raw['month'] as num?)?.toInt() ?? 1,
       factionId: FactionDefs.isKnown(player) ? player : 'wei',
       cityCount: owned,
       scenarioId: raw['scenario'] as String? ?? '',
-      savedAt: DateTime.tryParse(raw['savedAt'] as String? ?? ''),
     );
   }
 

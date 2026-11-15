@@ -129,7 +129,7 @@ class CityInfoCard extends StatelessWidget {
         ),
         const SizedBox(height: 9),
         for (final (label, value, color) in stats) ...[
-          StatBar(label: label, value: value, color: color, compact: true),
+          StatBar(label: label, value: value, color: color),
           if (label != stats.last.$1) const SizedBox(height: 5),
         ],
         const SizedBox(height: 9),

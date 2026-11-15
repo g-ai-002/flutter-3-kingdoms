@@ -46,10 +46,6 @@ class StorageService {
   Future<void> setMusicEnabled(bool value) =>
       _write((p) => p.setBool(AppConstants.prefKeyMusic, value));
 
-  bool get hapticsEnabled => _p.getBool(AppConstants.prefKeyHaptics) ?? true;
-  Future<void> setHapticsEnabled(bool value) =>
-      _write((p) => p.setBool(AppConstants.prefKeyHaptics, value));
-
   /// 地图逻辑更新速率，未设置或未知值回退到 60Hz。
   LogicRate get logicRate =>
       LogicRate.byName(_p.getString(AppConstants.prefKeyLogicRate));

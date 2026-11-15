@@ -9,7 +9,6 @@ import 'package:material_ui/material_ui.dart';
 import '../game/game_controller.dart';
 import '../models/city.dart';
 import '../models/faction.dart';
-import '../services/sound_service.dart';
 import '../theme/map_painting.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
@@ -440,9 +439,7 @@ class MapComponent extends PositionComponent with TapCallbacks {
         hit = city.id;
       }
     }
-    final before = controller.selectedCityId;
     controller.selectCity(hit);
-    if (controller.selectedCityId != before) SoundService.tap();
   }
 }
 

@@ -216,14 +216,13 @@ void _paintRegionText(
   painter.paint(canvas, center - Offset(painter.width / 2, painter.height / 2));
 }
 
-/// 城池之间的连线：虚线表示驿道，选中城池时高亮可进攻路线。
+/// 城池之间的虚线驿道，选中城池时高亮可进攻路线。
 void paintRoad(
   Canvas canvas,
   Offset from,
   Offset to,
   Color color,
   double width, {
-  bool dashed = true,
   double dashLength = 9,
   double gapLength = 7,
 }) {
@@ -232,10 +231,6 @@ void paintRoad(
     ..strokeWidth = width
     ..strokeCap = StrokeCap.round
     ..color = color;
-  if (!dashed) {
-    canvas.drawLine(from, to, paint);
-    return;
-  }
   final delta = to - from;
   final distance = delta.distance;
   if (distance <= 0) return;

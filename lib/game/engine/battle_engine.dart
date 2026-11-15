@@ -196,7 +196,6 @@ class BattleEngine {
     defenderRemaining: state.defender.troops,
     attackerLosses: state.attacker.initialTroops - state.attacker.troops,
     defenderLosses: state.defender.initialTroops - state.defender.troops,
-    rounds: state.round,
   );
 
   static double _power(BattleSide side, BattleTactic tactic, BattleSide foe) {
