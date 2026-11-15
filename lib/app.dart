@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cupertino_ui/cupertino_ui.dart' show GlobalCupertinoLocalizations;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show SystemChrome, SystemUiMode;
 import 'package:flutter_localizations/flutter_localizations.dart' show GlobalWidgetsLocalizations;
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -38,6 +39,14 @@ class _SanguoAppState extends State<SanguoApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _applyImmersive();
+  }
+
+  /// Android 应用级沉浸：启动首页到对局都铺满整屏，回到前台时再隐藏一次系统栏。
+  void _applyImmersive() {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
   }
 
   @override
@@ -51,6 +60,7 @@ class _SanguoAppState extends State<SanguoApp> with WidgetsBindingObserver {
     switch (state) {
       case AppLifecycleState.resumed:
         MusicService.resumeForLifecycle();
+        _applyImmersive();
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:

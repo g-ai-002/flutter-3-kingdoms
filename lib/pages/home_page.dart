@@ -1,8 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../game/data/scenario.dart';
 import '../game/game_controller.dart';
 import '../game/save_codec.dart';
+import '../models/difficulty.dart';
 import '../models/faction.dart';
 import '../models/game_state.dart';
 import '../providers/settings_provider.dart';
@@ -24,17 +26,26 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late String _factionId;
+  /// 势力选择只影响势力卡与开局按钮，走独立通道，点选时不重建整页。
+  late final ValueNotifier<String> _faction;
   SaveSummary? _autoSave;
 
   @override
   void initState() {
     super.initState();
     final settings = context.read<SettingsProvider>();
-    _factionId = FactionDefs.isKnown(settings.playerFactionId)
-        ? settings.playerFactionId
-        : FactionDefs.all.first.id;
+    _faction = ValueNotifier<String>(
+      FactionDefs.isKnown(settings.playerFactionId)
+          ? settings.playerFactionId
+          : FactionDefs.all.first.id,
+    );
     _refreshAutoSave();
+  }
+
+  @override
+  void dispose() {
+    _faction.dispose();
+    super.dispose();
   }
 
   Future<void> _refreshAutoSave() async {
@@ -44,11 +55,11 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _start() async {
     final settings = context.read<SettingsProvider>();
-    await settings.setPlayerFactionId(_factionId);
+    await settings.setPlayerFactionId(_faction.value);
     if (!mounted) return;
     SoundService.play(GameSound.turn);
     final controller = GameController(
-      factionId: _factionId,
+      factionId: _faction.value,
       difficulty: settings.difficulty,
       scenarioId: settings.scenario.id,
       goldRatio: settings.supply.ratio,
@@ -77,7 +88,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _play(GameState state) async {
-    SoundService.tap();
     await _enter(
       GameController.fromState(
         state,
@@ -103,10 +113,22 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = context.watch<SettingsProvider>();
+    // 只订阅首页真正用到的设置：音效、背景音乐与帧率变化不再重建首页。
+    final settings = context.read<SettingsProvider>();
+    final darkMode = context.select((SettingsProvider s) => s.darkMode);
+    final scenario = context.select((SettingsProvider s) => s.scenario);
+    final supply = context.select((SettingsProvider s) => s.supply);
+    final difficulty = context.select((SettingsProvider s) => s.difficulty);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colors = theme.colorScheme;
+    final panel = _buildFactionPanel(
+      colors,
+      settings,
+      scenario,
+      supply,
+      difficulty,
+    );
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -127,51 +149,57 @@ class _HomePageState extends State<HomePage> {
               final maxWidth = wide ? 1180.0 : 820.0;
               return SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(padding, 14, padding, 26),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: maxWidth),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        HomeTopBar(
-                          darkMode: settings.darkMode,
-                          onToggleDark: () =>
-                              settings.setDarkMode(!settings.darkMode),
-                          onHelp: () => _open(const HelpPage()),
-                          onSettings: () => _open(const SettingsPage()),
-                        ),
-                        const SizedBox(height: 18),
-                        if (wide)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: HomeHero(
-                                  brightness: theme.brightness,
-                                  compact: false,
-                                ),
-                              ),
-                              const SizedBox(width: 36),
-                              SizedBox(
-                                width: 470,
-                                child: _buildFactionPanel(colors, settings),
-                              ),
-                            ],
-                          )
-                        else ...[
-                          HomeHero(
-                            brightness: theme.brightness,
-                            compact: constraints.maxWidth < 520,
+                child: ConstrainedBox(
+                  // 内容比屏幕矮时垂直居中；超高时仍从顶部开始滚动。
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight > 40
+                        ? constraints.maxHeight - 40
+                        : 0,
+                  ),
+                  child: Center(
+                    key: const ValueKey('home-center'),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxWidth),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          HomeTopBar(
+                            darkMode: darkMode,
+                            onToggleDark: () =>
+                                settings.setDarkMode(!darkMode),
+                            onHelp: () => _open(const HelpPage()),
+                            onSettings: () => _open(const SettingsPage()),
                           ),
-                          const SizedBox(height: 22),
-                          _buildFactionPanel(colors, settings),
+                          const SizedBox(height: 18),
+                          if (wide)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: HomeHero(
+                                    brightness: theme.brightness,
+                                    compact: false,
+                                  ),
+                                ),
+                                const SizedBox(width: 36),
+                                SizedBox(width: 470, child: panel),
+                              ],
+                            )
+                          else ...[
+                            HomeHero(
+                              brightness: theme.brightness,
+                              compact: constraints.maxWidth < 520,
+                            ),
+                            const SizedBox(height: 22),
+                            panel,
+                          ],
+                          const SizedBox(height: 20),
+                          Text(
+                            'v${AppConstants.version} · 单机离线 · 无需联网',
+                            style: hintStyle(context, size: 11),
+                          ),
                         ],
-                        const SizedBox(height: 20),
-                        Text(
-                          'v${AppConstants.version} · 单机离线 · 无需联网',
-                          style: hintStyle(context, size: 11),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -183,7 +211,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildFactionPanel(ColorScheme colors, SettingsProvider settings) {
+  Widget _buildFactionPanel(
+    ColorScheme colors,
+    SettingsProvider settings,
+    ScenarioDef scenario,
+    StartSupply supply,
+    Difficulty difficulty,
+  ) {
     final theme = Theme.of(context);
     final auto = _autoSave;
     return Column(
@@ -206,8 +240,8 @@ class _HomePageState extends State<HomePage> {
           ),
         const SizedBox(height: 10),
         StartOptions(
-          scenario: settings.scenario,
-          supply: settings.supply,
+          scenario: scenario,
+          supply: supply,
           onScenario: (id) => settings.setScenarioId(id),
           onSupply: (value) => settings.setSupply(value),
         ),
@@ -220,37 +254,36 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         const SizedBox(height: 12),
-        ...FactionDefs.all.map(
-          (def) => Padding(
-            padding: const EdgeInsets.only(bottom: 9),
-            child: FactionPickCard(
-              def: def,
-              selected: def.id == _factionId,
-              scenarioId: settings.scenario.id,
-              gold: (def.gold * settings.supply.ratio).round(),
-              onTap: () {
-                SoundService.tap();
-                setState(() => _factionId = def.id);
-              },
-            ),
+        // 点选势力只重建这一块：上方地图缩略图与标题不再跟着重排。
+        ValueListenableBuilder<String>(
+          valueListenable: _faction,
+          builder: (context, factionId, _) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ...FactionDefs.all.map((def) => Padding(
+                padding: const EdgeInsets.only(bottom: 9),
+                child: FactionPickCard(
+                  def: def,
+                  selected: def.id == factionId,
+                  scenarioId: scenario.id,
+                  gold: (def.gold * supply.ratio).round(),
+                  onTap: () => _faction.value = def.id,
+                ),
+              )),
+              const SizedBox(height: 4),
+              DifficultyPicker(value: difficulty, onChanged: settings.setDifficulty),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: _start,
+                icon: const Icon(Icons.flag_rounded, size: 19),
+                label: Text(
+                  '以 ${FactionDefs.byId(factionId).ruler} 之名起兵',
+                  style: theme.textTheme.titleSmall?.copyWith(color: colors.onPrimary),
+                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(0, 50)),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 4),
-        DifficultyPicker(
-          value: settings.difficulty,
-          onChanged: (value) => settings.setDifficulty(value),
-        ),
-        const SizedBox(height: 14),
-        FilledButton.icon(
-          onPressed: _start,
-          icon: const Icon(Icons.flag_rounded, size: 19),
-          label: Text(
-            '以 ${FactionDefs.byId(_factionId).ruler} 之名起兵',
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: colors.onPrimary,
-            ),
-          ),
-          style: FilledButton.styleFrom(minimumSize: const Size(0, 50)),
         ),
       ],
     );

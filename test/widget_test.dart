@@ -8,6 +8,7 @@ import 'package:flutter_3_kingdoms/game/game_controller.dart';
 import 'package:flutter_3_kingdoms/pages/home_page.dart';
 import 'package:flutter_3_kingdoms/pages/settings_page.dart';
 import 'package:flutter_3_kingdoms/pages/widgets/city_info_card.dart';
+import 'package:flutter_3_kingdoms/pages/widgets/map_preview.dart';
 import 'package:flutter_3_kingdoms/providers/settings_provider.dart';
 import 'package:flutter_3_kingdoms/services/storage_service.dart';
 
@@ -43,6 +44,50 @@ void main() {
     await tester.tap(find.text('刘备 · 蜀'));
     await tester.pump();
     expect(find.text('以 刘备 之名起兵'), findsOneWidget);
+  });
+
+  testWidgets('首页内容在屏幕可容纳时垂直居中', (tester) async {
+    final settings = await _settings();
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(_app(settings, const HomePage()));
+    await tester.pump();
+
+    final box = tester.renderObject<RenderBox>(
+      find.byKey(const ValueKey('home-center')),
+    );
+    final top = box.localToGlobal(Offset.zero).dy;
+    expect((top + top + box.size.height) / 2, closeTo(800, 10));
+  });
+
+  testWidgets('选择势力与无关设置都不重建首页主视觉', (tester) async {
+    final settings = await _settings();
+    tester.view.physicalSize = const Size(1200, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(_app(settings, const HomePage()));
+    await tester.pump();
+
+    final preview = tester.widget<MapPreview>(find.byType(MapPreview));
+    await tester.tap(find.text('刘备 · 蜀'));
+    await tester.pump();
+    expect(find.text('以 刘备 之名起兵'), findsOneWidget);
+    expect(
+      identical(tester.widget<MapPreview>(find.byType(MapPreview)), preview),
+      isTrue,
+      reason: '点选势力只重建势力面板',
+    );
+
+    await settings.setSoundEnabled(false);
+    await tester.pump();
+    expect(
+      identical(tester.widget<MapPreview>(find.byType(MapPreview)), preview),
+      isTrue,
+      reason: '音效开关与首页布局无关',
+    );
   });
 
   testWidgets('首页可切换剧本与开局钱粮', (tester) async {

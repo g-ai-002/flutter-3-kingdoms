@@ -11,12 +11,11 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = '三国霸业';
-  static const String version = '0.5.2';
+  static const String version = '0.5.3';
 
   static const String prefKeyDarkMode = 'dark_mode';
   static const String prefKeySound = 'sound_enabled';
   static const String prefKeyMusic = 'music_enabled';
-  static const String prefKeyHaptics = 'haptics_enabled';
   static const String prefKeyLogicRate = 'logic_rate';
   static const String prefKeyDifficulty = 'difficulty';
   static const String prefKeyPlayerFaction = 'player_faction';

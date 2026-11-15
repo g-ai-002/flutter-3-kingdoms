@@ -16,8 +16,9 @@ bool shouldImmersiveLandscape(Size size) {
   return portrait.shortestSide < 600;
 }
 
-/// 地图页显示模式：满足 [shouldImmersiveLandscape] 时切到横屏并隐藏系统栏，
-/// 离开后恢复系统栏与自动旋转。多个页面叠放时按引用计数只在最后一个退出时恢复。
+/// 地图页显示模式：满足 [shouldImmersiveLandscape] 时切到横屏，离开后恢复自动
+/// 旋转。系统栏由应用外壳统一隐藏，这里不再单独处理。多个页面叠放时按引用
+/// 计数只在最后一个退出时恢复方向。
 class MapDisplayMode extends StatefulWidget {
   const MapDisplayMode({super.key, required this.child});
 
@@ -46,19 +47,15 @@ class _MapDisplayModeState extends State<MapDisplayMode> {
     }
   }
 
-  Future<void> _enter() async {
-    await SystemChrome.setPreferredOrientations(const [
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  }
+  Future<void> _enter() => SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
 
   void _release() {
     if (_holders > 0) _holders--;
     if (_holders > 0) return;
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
   @override
