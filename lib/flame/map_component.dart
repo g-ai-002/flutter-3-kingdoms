@@ -15,6 +15,10 @@ import '../utils/formatters.dart';
 import '../utils/logic_rate.dart';
 import '../utils/map_layout.dart';
 
+/// 城池徽记的矩形尺寸：选中环与脉冲环都按它外扩。
+const double _cityWidth = 76;
+const double _cityHeight = 32;
+
 /// Flame 战略地图：绘制城池、驿道与势力版图，处理点击与选中脉冲。
 ///
 /// 地形、驿道、城池徽记与选中装饰拆成四张 [ui.Picture]：地形只在主题变化时
@@ -271,11 +275,13 @@ class MapComponent extends PositionComponent with TapCallbacks {
     required double alpha,
     required double strokeWidth,
   }) {
-    const width = 76.0;
-    const height = 32.0;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: center, width: width + 12, height: height + 12),
+        Rect.fromCenter(
+          center: center,
+          width: _cityWidth + 12,
+          height: _cityHeight + 12,
+        ),
         const Radius.circular(10),
       ),
       Paint()
@@ -291,15 +297,13 @@ class MapComponent extends PositionComponent with TapCallbacks {
     ..color = const Color(0xFFC8A15A).withValues(alpha: 0.9);
 
   void _drawPulse(Canvas canvas, Offset center) {
-    const width = 76.0;
-    const height = 32.0;
     final pulse = 1 + 0.06 * math.sin(_time * 4.6);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromCenter(
           center: center,
-          width: width * pulse + 14,
-          height: height * pulse + 14,
+          width: _cityWidth * pulse + 14,
+          height: _cityHeight * pulse + 14,
         ),
         const Radius.circular(11),
       ),
@@ -329,10 +333,8 @@ class MapComponent extends PositionComponent with TapCallbacks {
 
   void _drawCity(Canvas canvas, City city) {
     final center = city.position;
-    const width = 76.0;
-    const height = 32.0;
     final rect = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: center, width: width, height: height),
+      Rect.fromCenter(center: center, width: _cityWidth, height: _cityHeight),
       const Radius.circular(7),
     );
 
@@ -354,7 +356,7 @@ class MapComponent extends PositionComponent with TapCallbacks {
     final troopPainter = _troopPainter(city.troops);
     troopPainter.paint(
       canvas,
-      center + Offset(-troopPainter.width / 2, height / 2 + 2),
+      center + Offset(-troopPainter.width / 2, _cityHeight / 2 + 2),
     );
 
     // 有太守的城池右上角点一颗金色小印。

@@ -121,22 +121,31 @@ class GameInfoPanel extends StatelessWidget {
   }
 }
 
-/// 顶栏工具：存档、玩法说明与设置。
+/// 顶栏工具：返回首页、存档、玩法说明与设置。
 class GameTopTools extends StatelessWidget {
   const GameTopTools({
-    super.key, required this.onSave, required this.onHelp,
-    required this.onSettings,
+    super.key, required this.onHome, required this.onSave,
+    required this.onHelp, required this.onSettings,
   });
 
+  final VoidCallback onHome;
   final VoidCallback onSave;
   final VoidCallback onHelp;
   final VoidCallback onSettings;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    // 侧栏很窄时四个按钮折成两行，不再横向溢出。
+    return Wrap(
+      alignment: WrapAlignment.end,
       children: [
+        HudIconButton(
+          icon: Icons.home_outlined,
+          tooltip: '返回首页',
+          onPressed: onHome,
+          size: 18,
+          box: 40,
+        ),
         HudIconButton(
           icon: Icons.save_outlined,
           tooltip: '存档',

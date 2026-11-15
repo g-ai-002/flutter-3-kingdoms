@@ -10,6 +10,7 @@ import 'package:flutter_3_kingdoms/models/battle.dart';
 import 'package:flutter_3_kingdoms/pages/battle_page.dart';
 import 'package:flutter_3_kingdoms/pages/game_page.dart';
 import 'package:flutter_3_kingdoms/providers/settings_provider.dart';
+import 'package:flutter_3_kingdoms/services/save_service.dart';
 import 'package:flutter_3_kingdoms/services/storage_service.dart';
 import 'package:flutter_3_kingdoms/utils/logic_rate.dart';
 
@@ -42,6 +43,7 @@ void main() {
     expect(find.textContaining('196年'), findsOneWidget);
     expect(find.text('结束本月'), findsOneWidget);
     expect(find.text('势力'), findsOneWidget);
+    expect(find.byTooltip('返回首页'), findsOneWidget);
 
     controller.selectCity('xuchang');
     await tester.pump();
@@ -59,7 +61,7 @@ void main() {
 
   testWidgets('手机横屏与竖屏下对局页自适应且不溢出', (tester) async {
     final settings = await _settings();
-    for (final size in const [Size(844, 390), Size(390, 844)]) {
+    for (final size in const [Size(844, 390), Size(390, 844), Size(1500, 900)]) {
       final controller = GameController(factionId: 'wu', seed: 9);
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1.0;
@@ -85,6 +87,53 @@ void main() {
     }
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+  });
+
+  testWidgets('对局页可从顶栏返回首页并写好自动存档', (tester) async {
+    final settings = await _settings();
+    final controller = GameController(factionId: 'wu', seed: 21);
+    await SaveService.delete(SaveService.autoKey);
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<SettingsProvider>.value(
+        value: settings,
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: FilledButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => GamePage(controller: controller),
+                    ),
+                  ),
+                  child: const Text('进入对局'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('进入对局'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    controller.endTurn();
+    await tester.pump();
+    expect(await SaveService.autoSummary(), isNull);
+
+    await tester.tap(find.byTooltip('返回首页'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('进入对局'), findsOneWidget);
+    expect(await SaveService.autoSummary(), isNotNull);
   });
 
   testWidgets('对局中切换逻辑刷新率立即生效', (tester) async {

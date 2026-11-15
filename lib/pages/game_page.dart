@@ -105,6 +105,12 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     }
   }
 
+  /// 返回首页：先等自动存档落盘，首页「继续征战」立刻能接上这一局。
+  Future<void> _backToHome() async {
+    await _autosave();
+    if (mounted) Navigator.of(context).pop();
+  }
+
   void _onControllerChanged() {
     if (!mounted) return;
     if (controller.finished && !_resultShown) {
@@ -276,6 +282,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
               builder: (context, _) => GameFactionCard(controller: controller),
             ),
             topEnd: GameTopTools(
+              onHome: () => unawaited(_backToHome()),
               onSave: () => unawaited(
                 _withMapPaused(() => showSaveSheet(context, controller)),
               ),

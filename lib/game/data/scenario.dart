@@ -223,39 +223,26 @@ class Scenario {
           food: (def.food * wealthOf(def.id)).round(),
         ),
     };
+    // 逐字段照搬静态设定，紧凑写法与上面的数据表保持一致。
     final cities = <String, City>{
       for (final def in cityDefs)
         def.id: City(
-          id: def.id,
-          name: def.name,
-          region: def.region,
-          position: def.position,
-          terrain: def.terrain,
+          id: def.id, name: def.name, region: def.region,
+          position: def.position, terrain: def.terrain,
           neighbors: List.unmodifiable(def.neighbors),
-          owner: owners[def.id]!,
-          agriculture: def.agriculture,
-          commerce: def.commerce,
-          order: def.order,
-          defense: def.defense,
+          owner: owners[def.id]!, agriculture: def.agriculture,
+          commerce: def.commerce, order: def.order, defense: def.defense,
           troops: (def.troops * (scenario.troops[owners[def.id]] ?? 1)).round(),
-          training: def.training,
-          population: def.population,
+          training: def.training, population: def.population,
           troopType: troopTypes[def.id] ?? TroopType.infantry,
         ),
     };
     final generals = <String, General>{
       for (final def in generalDefs)
         def.id: General(
-          id: def.id,
-          name: def.name,
-          factionId: def.factionId,
-          cityId: def.cityId,
-          wu: def.wu,
-          intel: def.intel,
-          lead: def.lead,
-          politics: def.politics,
-          loyalty: def.loyalty,
-          trait: def.trait,
+          id: def.id, name: def.name, factionId: def.factionId,
+          cityId: def.cityId, wu: def.wu, intel: def.intel, lead: def.lead,
+          politics: def.politics, loyalty: def.loyalty, trait: def.trait,
           skill: generalSkills[def.id] ?? GeneralSkill.none,
         ),
     };
