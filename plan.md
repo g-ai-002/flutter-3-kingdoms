@@ -50,21 +50,22 @@
 - 0.5.2 性能与流畅度优化：日志批量异步落盘、自动存档按修订号去重、地图文字按主题缓存、布局计算与重绘边界收敛。✅
 - 0.5.3 启动与首页优化：Android 全屏沉浸、首页垂直居中、首页局部重建、存档摘要单存与势力查表。✅
 - 0.5.4 修复对局页缺少返回首页入口：顶栏新增首页按钮，退出前等自动存档落盘。✅
-- 0.5.5 依赖升级：flutter_soloud 5.2.3 → 5.3.0，拿到原生混音 SIMD 加速与退出、Web 初始化修复，玩法不变。
+- 0.5.5 依赖升级：flutter_soloud 5.2.3 → 5.3.0，拿到原生混音 SIMD 加速与退出、Web 初始化修复，玩法不变。✅
 
 ## 版本历史
 
 ### v0.5.5 (PATCH) — 2026-11-16
 
-- **状态**: 开发中 🚧
+- **状态**: Android / Windows / Web 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-3-kingdoms/releases/tag/v0.5.5)）
 - **目标**: 把音频依赖 `flutter_soloud` 从 5.2.3 升到 5.3.0，取它的原生混音 SIMD 加速与一批稳定性修复；玩法、数值与界面保持不变。
 - **任务**:
   - [x] `pubspec.yaml` 依赖升级为 `flutter_soloud: 5.3.0`（固定版本号），版本号升至 0.5.5
   - [x] 核对项目用到的 `init` / `loadMem` / `play` / `stopAudioSource` / `disposeSource` / `setPause` / `getIsValidVoiceHandle` 在 5.3.0 中签名未变，音效与音乐代码无需改动
   - [x] 保留 `no_xiph_libs: true` 构建钩子配置：5.3.0 仍支持该开关，构建不再下载 Xiph 预编译库
   - [x] 新增依赖固定版本测试：直接依赖必须是 x.y.z 形式，`flutter_soloud` 必须为 5.3.0
-  - [x] `flutter analyze` 无问题；144 项测试通过；lib 代码仍低于 10000 行
-  - [ ] 构建流水线（Android / Windows / Web）通过并发布 v0.5.5
+  - [x] `flutter analyze` 无问题；144 项测试通过；lib 代码 9991 行，低于 10000 行上限
+  - [x] 构建流水线：Dart 测试、Android、Windows、Web 与 Pages 任务全部通过，Web 站点已发布到 `tea-pages/v0.5.5`
+  - [x] Release：Android APK、Windows ZIP 与 Web ZIP 三端产物已上传（Run #20，各 44 / 27 / 29 MB）
 
 ### v0.5.4 (PATCH) — 2026-11-15
 
